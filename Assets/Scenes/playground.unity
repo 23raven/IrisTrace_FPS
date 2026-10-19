@@ -280,6 +280,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1594393700564732594, guid: a78d62aa33d0f3342b4bd021888e7f70, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7052605673870351568, guid: a78d62aa33d0f3342b4bd021888e7f70, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7381613797089639281, guid: a78d62aa33d0f3342b4bd021888e7f70, type: 3}
       propertyPath: m_Name
       value: Iris

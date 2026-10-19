@@ -8,7 +8,7 @@ namespace IrisTrace.Runtime.Characters
     /// Small reusable health component shared by heroes and future enemies.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class CharacterHealth : MonoBehaviour, IDamageable, IHealthStatus
+    public sealed class CharacterHealth : MonoBehaviour, IDamageable, IHealable, IHealthStatus
     {
         [SerializeField, Min(1f)] private float maxHealth = 100f;
         [SerializeField, Min(0f)] private float currentHealth = 100f;

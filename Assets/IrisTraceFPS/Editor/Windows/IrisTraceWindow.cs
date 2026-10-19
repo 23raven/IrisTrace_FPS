@@ -2,6 +2,7 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using IrisTrace.Editor.Generators;
 using IrisTrace.Editor.UI;
 
 namespace IrisTrace.Editor.Windows
@@ -78,6 +79,29 @@ namespace IrisTrace.Editor.Windows
                 "Browse, edit and duplicate reusable weapon configurations.",
                 "Open Weapon Library",
                 IrisTraceWeaponLibraryWindow.Open,
+                false));
+            content.Add(BuildActionCard(
+                "04",
+                "Enemy Library",
+                "Browse, edit and duplicate reusable enemy configurations.",
+                "Open Enemy Library",
+                IrisTraceEnemyLibraryWindow.Open,
+                false));
+            content.Add(BuildDivider());
+            content.Add(BuildSectionLabel("TESTING"));
+            content.Add(BuildActionCard(
+                "05",
+                "Test Arena",
+                "Generate a ready-to-play scene with a hero, training target and basic bot.",
+                "Create Test Arena",
+                IrisTraceTestArenaBuilder.CreateTestArena,
+                true));
+            content.Add(BuildActionCard(
+                "06",
+                "Project Validation",
+                "Check configuration IDs, weapon links and scene camera setup.",
+                "Run Project Validation",
+                IrisTraceProjectValidationWindow.Open,
                 false));
             content.Add(BuildStatus());
             content.Add(BuildFooter());
@@ -312,7 +336,7 @@ namespace IrisTrace.Editor.Windows
             footer.style.borderTopWidth = 1f;
             footer.style.borderTopColor = IrisTraceTheme.Border;
 
-            Label text = new Label("IRISTRACE FPS    /    PROTOTYPE 0.4");
+            Label text = new Label("IRISTRACE FPS    /    PROTOTYPE 0.5");
             text.style.color = IrisTraceTheme.SecondaryText;
             text.style.fontSize = 9f;
             text.style.letterSpacing = 0.5f;
