@@ -10,10 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2b179288611162c469be5ccd5a55d2a4, type: 3}
-  m_Name: Iris
+  m_Name: Iris 1
   m_EditorClassIdentifier: IrisTrace.Runtime.Characters::IrisTrace.Runtime.Characters.CharacterDefinition
-  id: 5c224b84b4514b289ebcadf12d1e96b0
+  id: 64584241d0b346c495cb89a9c5f3c427
+  primaryWeaponId: 67ba5ed719d84505b94405e13781b976
   displayName: Iris
+  portraitIcon: {fileID: 21300000, guid: 1d7589b327a15e849a4ae4816622f742, type: 3}
   maxHealth: 100
   walkSpeed: 5
   sprintSpeed: 8
@@ -28,3 +30,11 @@ MonoBehaviour:
   sprintBinding: <Keyboard>/leftShift
   fireBinding: <Mouse>/leftButton
   reloadBinding: <Keyboard>/r
+  ability1Type: 1
+  ability1Binding: <Keyboard>/q
+  ability1Cooldown: 5
+  ability1Value: 6
+  ability2Type: 2
+  ability2Binding: <Keyboard>/e
+  ability2Cooldown: 8
+  ability2Value: 25

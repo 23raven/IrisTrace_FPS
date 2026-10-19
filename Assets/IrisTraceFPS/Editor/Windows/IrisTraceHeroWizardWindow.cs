@@ -59,15 +59,10 @@ namespace IrisTrace.Editor.Windows
             window.Show();
         }
 
-        private void OnEnable() => IrisTraceTheme.ThemeChanged += RebuildForTheme;
-
         private void OnDisable()
         {
-            IrisTraceTheme.ThemeChanged -= RebuildForTheme;
             CancelBindingCapture(false);
         }
-
-        private void RebuildForTheme() => CreateGUI();
 
         public void CreateGUI()
         {
@@ -138,15 +133,8 @@ namespace IrisTrace.Editor.Windows
             titleStack.Add(title);
             titleStack.Add(subtitle);
 
-            Button themeButton = new Button(IrisTraceTheme.Toggle)
-            {
-                text = IrisTraceTheme.IsDark ? "Light Mode" : "Dark Mode"
-            };
-            StyleSecondaryButton(themeButton, 86f);
-
             header.Add(mark);
             header.Add(titleStack);
-            header.Add(themeButton);
             return header;
         }
 
@@ -469,11 +457,9 @@ namespace IrisTrace.Editor.Windows
             string characterFolder = "Assets/IrisTraceFPS_Generated/Configurations/Characters";
             EnsureAssetFolder(characterFolder);
 
-            string primaryWeaponId = Guid.NewGuid().ToString("N");
             CharacterDefinition definition = CreateInstance<CharacterDefinition>();
             SerializedObject serialized = new SerializedObject(definition);
             SetString(serialized, "id", Guid.NewGuid().ToString("N"));
-            SetString(serialized, "primaryWeaponId", primaryWeaponId);
             SetString(serialized, "displayName", displayNameField.value.Trim());
             SetFloat(serialized, "maxHealth", maxHealthField.value);
             SetFloat(serialized, "walkSpeed", walkSpeedField.value);
@@ -506,7 +492,7 @@ namespace IrisTrace.Editor.Windows
             EnsureAssetFolder(weaponFolder);
             WeaponDefinition weaponDefinition = CreateInstance<WeaponDefinition>();
             SerializedObject weaponSerialized = new SerializedObject(weaponDefinition);
-            SetString(weaponSerialized, "id", primaryWeaponId);
+            SetString(weaponSerialized, "id", Guid.NewGuid().ToString("N"));
             SetString(weaponSerialized, "displayName", safeName + " Primary Weapon");
             SetFloat(weaponSerialized, "damage", weaponDamageField.value);
             SetFloat(weaponSerialized, "shotsPerSecond", shotsPerSecondField.value);

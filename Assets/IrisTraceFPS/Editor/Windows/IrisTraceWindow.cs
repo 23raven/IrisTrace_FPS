@@ -18,21 +18,6 @@ namespace IrisTrace.Editor.Windows
             window.Show();
         }
 
-        private void OnEnable()
-        {
-            IrisTraceTheme.ThemeChanged += RebuildForTheme;
-        }
-
-        private void OnDisable()
-        {
-            IrisTraceTheme.ThemeChanged -= RebuildForTheme;
-        }
-
-        private void RebuildForTheme()
-        {
-            CreateGUI();
-        }
-
         public void CreateGUI()
         {
             rootVisualElement.Clear();
@@ -146,21 +131,8 @@ namespace IrisTrace.Editor.Windows
             titles.Add(title);
             titles.Add(subtitle);
 
-            Button themeButton = new Button(IrisTraceTheme.Toggle)
-            {
-                text = IrisTraceTheme.IsDark ? "Light Mode" : "Dark Mode"
-            };
-            themeButton.style.height = 30f;
-            themeButton.style.minWidth = 83f;
-            themeButton.style.backgroundColor = IrisTraceTheme.SurfaceStrong;
-            themeButton.style.color = IrisTraceTheme.PrimaryText;
-            themeButton.style.fontSize = 10f;
-            Radius(themeButton, 8f);
-            Border(themeButton, 1f, IrisTraceTheme.Border);
-
             header.Add(mark);
             header.Add(titles);
-            header.Add(themeButton);
             return header;
         }
 
@@ -318,7 +290,7 @@ namespace IrisTrace.Editor.Windows
             dot.style.backgroundColor = IrisTraceTheme.Accent;
             Radius(dot, 4f);
 
-            Label statusText = new Label("EDITOR READY  /  CONFIGURATION WORKFLOW IN PROGRESS");
+            Label statusText = new Label("MVP PREVIEW  /  VERIFY IN UNITY BEFORE RELEASE");
             statusText.style.color = IrisTraceTheme.SecondaryText;
             statusText.style.fontSize = 9f;
             statusText.style.letterSpacing = 0.4f;
@@ -336,7 +308,7 @@ namespace IrisTrace.Editor.Windows
             footer.style.borderTopWidth = 1f;
             footer.style.borderTopColor = IrisTraceTheme.Border;
 
-            Label text = new Label("IRISTRACE FPS    /    PROTOTYPE 0.5");
+            Label text = new Label("IRISTRACE FPS    /    MVP PREVIEW 0.1");
             text.style.color = IrisTraceTheme.SecondaryText;
             text.style.fontSize = 9f;
             text.style.letterSpacing = 0.5f;

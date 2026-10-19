@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using IrisTrace.Editor.UI;
 using IrisTrace.Runtime.Weapons;
+using IrisTrace.Runtime.Characters;
 
 namespace IrisTrace.Editor.Windows
 {
@@ -13,6 +14,7 @@ namespace IrisTrace.Editor.Windows
     public sealed class IrisTraceWeaponLibraryWindow : EditorWindow
     {
         private const string WeaponConfigRoot = "Assets/IrisTraceFPS_Generated/Configurations/Weapons";
+        private const string CharacterConfigRoot = "Assets/IrisTraceFPS_Generated/Configurations/Characters";
 
         private readonly List<WeaponDefinition> allWeapons = new List<WeaponDefinition>();
         private TextField searchField;
@@ -36,10 +38,6 @@ namespace IrisTrace.Editor.Windows
             window.minSize = new Vector2(430f, 560f);
             window.Show();
         }
-
-        private void OnEnable() => IrisTraceTheme.ThemeChanged += RebuildForTheme;
-        private void OnDisable() => IrisTraceTheme.ThemeChanged -= RebuildForTheme;
-        private void RebuildForTheme() => CreateGUI();
 
         public void CreateGUI()
         {
@@ -244,7 +242,12 @@ namespace IrisTrace.Editor.Windows
 
             Button ping = new Button(PingSelected) { text = "Find Asset" };
             StyleButton(ping, false);
+            ping.style.marginRight = 6f;
             actions.Add(ping);
+
+            Button delete = new Button(DeleteSelected) { text = "Delete" };
+            StyleDangerButton(delete);
+            actions.Add(delete);
 
             panel.Add(actions);
             detailsContainer.Add(panel);
@@ -329,6 +332,62 @@ namespace IrisTrace.Editor.Windows
             EditorGUIUtility.PingObject(duplicate);
         }
 
+        private void DeleteSelected()
+        {
+            if (selected == null)
+                return;
+
+            string assetPath = AssetDatabase.GetAssetPath(selected);
+            if (string.IsNullOrEmpty(assetPath) ||
+                !assetPath.StartsWith(WeaponConfigRoot + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                EditorUtility.DisplayDialog("Delete Failed", "The selected asset is outside the IrisTrace weapon configuration folder.", "OK");
+                return;
+            }
+
+            int dependentCharacters = CountCharactersUsingWeapon(selected.Id);
+            string dependencyWarning = dependentCharacters > 0
+                ? $"\n\nWarning: {dependentCharacters} character configuration(s) reference this weapon. They may need another weapon assigned before prefab generation."
+                : string.Empty;
+            bool confirmed = EditorUtility.DisplayDialog(
+                "Delete Weapon Configuration?",
+                $"Delete '{selected.DisplayName}' from the Weapon Library?{dependencyWarning}\n\nOnly the saved weapon configuration will be removed. Existing character configurations and generated prefabs will remain untouched.",
+                "Delete Configuration",
+                "Cancel");
+            if (!confirmed)
+                return;
+
+            if (!AssetDatabase.DeleteAsset(assetPath))
+            {
+                EditorUtility.DisplayDialog("Delete Failed", "Unity could not delete this weapon configuration asset.", "OK");
+                return;
+            }
+
+            selected = null;
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            RefreshList();
+            ShowNotification(new GUIContent("Weapon configuration deleted"));
+        }
+
+        private static int CountCharactersUsingWeapon(string weaponId)
+        {
+            if (string.IsNullOrEmpty(weaponId) || !AssetDatabase.IsValidFolder(CharacterConfigRoot))
+                return 0;
+
+            int count = 0;
+            string[] guids = AssetDatabase.FindAssets("t:CharacterDefinition", new[] { CharacterConfigRoot });
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                CharacterDefinition character = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(path);
+                if (character != null && string.Equals(character.PrimaryWeaponId, weaponId, StringComparison.Ordinal))
+                    count++;
+            }
+
+            return count;
+        }
+
         private void PingSelected()
         {
             if (selected == null)
@@ -362,6 +421,18 @@ namespace IrisTrace.Editor.Windows
             button.style.unityFontStyleAndWeight = FontStyle.Normal;
             SetRadius(button, 7f);
             SetBorder(button, primary ? Color.clear : IrisTraceTheme.Border);
+        }
+
+        private static void StyleDangerButton(Button button)
+        {
+            button.style.height = 28f;
+            button.style.paddingLeft = 10f;
+            button.style.paddingRight = 10f;
+            button.style.marginBottom = 4f;
+            button.style.backgroundColor = new Color(145f / 255f, 52f / 255f, 52f / 255f, 1f);
+            button.style.color = Color.white;
+            SetRadius(button, 7f);
+            SetBorder(button, new Color32(176, 77, 77, 255));
         }
 
         private static void SetRadius(VisualElement element, float radius)

@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b5778014a14f90a4883e6c798d5bcdee, type: 3}
-  m_Name: Candy_PrimaryWeapon
+  m_Name: Iris_PrimaryWeapon 1
   m_EditorClassIdentifier: IrisTrace.Runtime.Weapons::IrisTrace.Runtime.Weapons.WeaponDefinition
-  id: 548fd4b5857340a19775d38455148010
-  displayName: Candy Primary Weapon
+  id: 67ba5ed719d84505b94405e13781b976
+  displayName: Iris Primary Weapon
   damage: 25
   shotsPerSecond: 6
   magazineSize: 12

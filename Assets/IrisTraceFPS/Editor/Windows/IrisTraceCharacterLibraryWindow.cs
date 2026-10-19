@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 using IrisTrace.Editor.Generators;
@@ -20,7 +21,6 @@ namespace IrisTrace.Editor.Windows
 
         private TextField searchField;
         private VisualElement listContainer;
-        private VisualElement detailsContainer;
         private CharacterDefinition selected;
         private readonly List<CharacterDefinition> allCharacters = new List<CharacterDefinition>();
 
@@ -31,12 +31,6 @@ namespace IrisTrace.Editor.Windows
             window.minSize = new Vector2(420f, 520f);
             window.Show();
         }
-
-        private void OnEnable() => IrisTraceTheme.ThemeChanged += RebuildForTheme;
-
-        private void OnDisable() => IrisTraceTheme.ThemeChanged -= RebuildForTheme;
-
-        private void RebuildForTheme() => CreateGUI();
 
         public void CreateGUI()
         {
@@ -92,15 +86,12 @@ namespace IrisTrace.Editor.Windows
             listContainer.style.marginBottom = 14f;
             scroll.Add(listContainer);
 
-            detailsContainer = new VisualElement();
-            scroll.Add(detailsContainer);
-
             RefreshList();
         }
 
         private void RefreshList()
         {
-            if (listContainer == null || detailsContainer == null)
+            if (listContainer == null)
                 return;
 
             allCharacters.Clear();
@@ -118,9 +109,13 @@ namespace IrisTrace.Editor.Windows
 
             allCharacters.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
             listContainer.Clear();
-            detailsContainer.Clear();
 
             string query = searchField != null ? searchField.value.Trim() : string.Empty;
+            if (selected != null && !string.IsNullOrEmpty(query) &&
+                selected.DisplayName.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0 &&
+                (selected.Id == null || selected.Id.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0))
+                selected = null;
+
             int visibleCount = 0;
             foreach (CharacterDefinition definition in allCharacters)
             {
@@ -129,16 +124,57 @@ namespace IrisTrace.Editor.Windows
                     (definition.Id == null || definition.Id.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0))
                     continue;
 
-                Button row = new Button(() => SelectCharacter(definition));
-                row.text = $"{definition.DisplayName}\n{ShortId(definition.Id)}  •  {definition.MaxHealth:0} HP";
-                row.style.height = 48f;
-                row.style.marginBottom = 5f;
-                row.style.unityTextAlign = TextAnchor.MiddleLeft;
-                row.style.whiteSpace = WhiteSpace.Normal;
-                row.style.backgroundColor = selected == definition ? IrisTraceTheme.AccentHover : IrisTraceTheme.Surface;
-                row.style.color = selected == definition ? IrisTraceTheme.AccentText : IrisTraceTheme.PrimaryText;
-                SetRadius(row, 8f);
-                listContainer.Add(row);
+                CharacterDefinition captured = definition;
+                bool isExpanded = selected == definition;
+
+                VisualElement card = new VisualElement();
+                card.style.backgroundColor = isExpanded ? IrisTraceTheme.AccentHover : IrisTraceTheme.Surface;
+                card.style.paddingLeft = 8f;
+                card.style.paddingRight = 8f;
+                card.style.paddingTop = 7f;
+                card.style.paddingBottom = 7f;
+                card.style.marginBottom = 7f;
+                SetRadius(card, 9f);
+                SetBorder(card, isExpanded ? IrisTraceTheme.Accent : IrisTraceTheme.Border);
+
+                VisualElement row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.alignItems = Align.Center;
+                row.style.minHeight = 48f;
+                row.Add(CreateCharacterIcon(definition, 44f));
+
+                VisualElement identity = new VisualElement();
+                identity.style.flexGrow = 1f;
+                identity.style.marginLeft = 9f;
+                identity.style.marginRight = 8f;
+                identity.style.justifyContent = Justify.Center;
+
+                Label nameLabel = new Label(definition.DisplayName);
+                nameLabel.style.color = IrisTraceTheme.PrimaryText;
+                nameLabel.style.fontSize = 12f;
+                nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+
+                Label metaLabel = new Label($"{ShortId(definition.Id)}  •  {definition.MaxHealth:0} HP");
+                metaLabel.style.color = IrisTraceTheme.SecondaryText;
+                metaLabel.style.fontSize = 9f;
+                identity.Add(nameLabel);
+                identity.Add(metaLabel);
+                row.Add(identity);
+
+                Button detailsButton = new Button(() => ToggleDetails(captured))
+                {
+                    text = isExpanded ? "Hide Details ▲" : "Details ▼"
+                };
+                StyleButton(detailsButton, isExpanded);
+                detailsButton.style.minWidth = 88f;
+                detailsButton.style.marginBottom = 0f;
+                row.Add(detailsButton);
+                card.Add(row);
+
+                if (isExpanded)
+                    card.Add(DrawDetails());
+
+                listContainer.Add(card);
                 visibleCount++;
             }
 
@@ -156,29 +192,27 @@ namespace IrisTrace.Editor.Windows
 
             if (selected != null && !allCharacters.Contains(selected))
                 selected = null;
-            DrawDetails();
         }
 
-        private void SelectCharacter(CharacterDefinition definition)
+        private void ToggleDetails(CharacterDefinition definition)
         {
-            selected = definition;
+            selected = selected == definition ? null : definition;
             RefreshList();
         }
 
-        private void DrawDetails()
+        private VisualElement DrawDetails()
         {
-            detailsContainer.Clear();
             if (selected == null)
-                return;
+                return new VisualElement();
 
             VisualElement panel = new VisualElement();
             panel.style.backgroundColor = IrisTraceTheme.Surface;
             panel.style.paddingLeft = 13f;
             panel.style.paddingRight = 13f;
-            panel.style.paddingTop = 12f;
+            panel.style.paddingTop = 10f;
             panel.style.paddingBottom = 12f;
-            panel.style.marginTop = 3f;
-            SetRadius(panel, 10f);
+            panel.style.marginTop = 8f;
+            SetRadius(panel, 8f);
             SetBorder(panel, IrisTraceTheme.Border);
 
             Label heading = new Label(selected.DisplayName);
@@ -186,6 +220,27 @@ namespace IrisTrace.Editor.Windows
             heading.style.fontSize = 15f;
             heading.style.unityFontStyleAndWeight = FontStyle.Bold;
             panel.Add(heading);
+
+            VisualElement portraitRow = new VisualElement();
+            portraitRow.style.flexDirection = FlexDirection.Row;
+            portraitRow.style.alignItems = Align.Center;
+            portraitRow.style.marginTop = 8f;
+            portraitRow.style.marginBottom = 8f;
+            portraitRow.Add(CreateCharacterIcon(selected, 84f));
+
+            ObjectField portraitField = new ObjectField("Portrait Sprite")
+            {
+                objectType = typeof(Sprite),
+                allowSceneObjects = false,
+                value = selected.PortraitIcon
+            };
+            portraitField.style.flexGrow = 1f;
+            portraitField.style.marginLeft = 12f;
+            portraitField.tooltip = "Optional icon shown in the Character Library. Select a Sprite asset from your project.";
+            portraitField.RegisterValueChangedCallback(evt => SavePortraitIcon(evt.newValue as Sprite));
+            portraitRow.Add(portraitField);
+            panel.Add(portraitRow);
+
             AddDetail(panel, "ID", string.IsNullOrEmpty(selected.Id) ? "Missing ID" : selected.Id);
             AddDetail(panel, "Health", $"{selected.MaxHealth:0} HP");
             AddDetail(panel, "Movement", $"Walk {selected.WalkSpeed:0.##}  /  Sprint {selected.SprintSpeed:0.##}");
@@ -217,10 +272,108 @@ namespace IrisTrace.Editor.Windows
 
             Button locate = new Button(LocatePrefab) { text = "Find Prefab" };
             StyleButton(locate, false);
+            locate.style.marginRight = 6f;
             actions.Add(locate);
 
+            Button delete = new Button(DeleteSelected) { text = "Delete" };
+            StyleDangerButton(delete);
+            actions.Add(delete);
+
             panel.Add(actions);
-            detailsContainer.Add(panel);
+            return panel;
+        }
+
+        private void SavePortraitIcon(Sprite sprite)
+        {
+            if (selected == null)
+                return;
+
+            SerializedObject serialized = new SerializedObject(selected);
+            SerializedProperty portraitProperty = serialized.FindProperty("portraitIcon");
+            if (portraitProperty == null)
+            {
+                EditorUtility.DisplayDialog("Portrait Icon Unavailable",
+                    "The character configuration does not contain the portrait field. Reimport the latest IrisTrace FPS files.", "OK");
+                return;
+            }
+
+            Undo.RecordObject(selected, "Change Character Portrait");
+            portraitProperty.objectReferenceValue = sprite;
+            serialized.ApplyModifiedProperties();
+            EditorUtility.SetDirty(selected);
+            AssetDatabase.SaveAssets();
+            RefreshList();
+            ShowNotification(new GUIContent(sprite == null ? "Portrait cleared" : "Portrait updated"));
+        }
+
+        private void DeleteSelected()
+        {
+            if (selected == null)
+                return;
+
+            string assetPath = AssetDatabase.GetAssetPath(selected);
+            if (string.IsNullOrEmpty(assetPath) ||
+                !assetPath.StartsWith(CharacterConfigRoot + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                EditorUtility.DisplayDialog("Delete Failed", "The selected asset is outside the IrisTrace character configuration folder.", "OK");
+                return;
+            }
+
+            string displayName = selected.DisplayName;
+            bool confirmed = EditorUtility.DisplayDialog(
+                "Delete Character Configuration?",
+                $"Delete '{displayName}' from the Character Library?\n\nOnly the saved configuration asset will be removed. Generated prefabs and related weapon configurations will remain untouched.",
+                "Delete Configuration",
+                "Cancel");
+            if (!confirmed)
+                return;
+
+            if (!AssetDatabase.DeleteAsset(assetPath))
+            {
+                EditorUtility.DisplayDialog("Delete Failed", "Unity could not delete this configuration asset.", "OK");
+                return;
+            }
+
+            selected = null;
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            RefreshList();
+            ShowNotification(new GUIContent("Character configuration deleted"));
+        }
+
+        private static VisualElement CreateCharacterIcon(CharacterDefinition definition, float size)
+        {
+            VisualElement frame = new VisualElement();
+            frame.style.width = size;
+            frame.style.height = size;
+            frame.style.minWidth = size;
+            frame.style.minHeight = size;
+            frame.style.alignItems = Align.Center;
+            frame.style.justifyContent = Justify.Center;
+            frame.style.backgroundColor = IrisTraceTheme.SurfaceStrong;
+            frame.style.overflow = Overflow.Hidden;
+            SetRadius(frame, 7f);
+            SetBorder(frame, IrisTraceTheme.Border);
+
+            if (definition != null && definition.PortraitIcon != null)
+            {
+                Image image = new Image { sprite = definition.PortraitIcon, scaleMode = ScaleMode.ScaleToFit };
+                image.style.width = Length.Percent(100f);
+                image.style.height = Length.Percent(100f);
+                frame.Add(image);
+            }
+            else
+            {
+                string name = definition != null ? definition.DisplayName : string.Empty;
+                string initials = string.IsNullOrWhiteSpace(name) ? "IT" : name.Trim().Substring(0, 1).ToUpperInvariant();
+                Label placeholder = new Label(initials);
+                placeholder.style.color = IrisTraceTheme.Accent;
+                placeholder.style.fontSize = Mathf.Clamp(size * 0.42f, 14f, 30f);
+                placeholder.style.unityFontStyleAndWeight = FontStyle.Bold;
+                frame.Add(placeholder);
+            }
+
+            return frame;
         }
 
         private void GenerateFromSelected()
@@ -392,6 +545,18 @@ namespace IrisTrace.Editor.Windows
             button.style.unityFontStyleAndWeight = FontStyle.Normal;
             SetRadius(button, 7f);
             SetBorder(button, primary ? Color.clear : IrisTraceTheme.Border);
+        }
+
+        private static void StyleDangerButton(Button button)
+        {
+            button.style.height = 28f;
+            button.style.paddingLeft = 10f;
+            button.style.paddingRight = 10f;
+            button.style.marginBottom = 4f;
+            button.style.backgroundColor = new Color(145f / 255f, 52f / 255f, 52f / 255f, 1f);
+            button.style.color = Color.white;
+            SetRadius(button, 7f);
+            SetBorder(button, new Color32(176, 77, 77, 255));
         }
 
         private static void SetRadius(VisualElement element, float radius)

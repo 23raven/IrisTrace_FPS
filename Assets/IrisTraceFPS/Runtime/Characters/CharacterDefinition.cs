@@ -17,6 +17,7 @@ namespace IrisTrace.Runtime.Characters
         [SerializeField, HideInInspector] private string id;
         [SerializeField, HideInInspector] private string primaryWeaponId;
         [SerializeField] private string displayName = "New FPS Hero";
+        [SerializeField] private Sprite portraitIcon;
 
         [Header("Vitals")]
         [SerializeField, Min(1f)] private float maxHealth = 100f;
@@ -55,6 +56,7 @@ namespace IrisTrace.Runtime.Characters
         public string Id => id;
         public string PrimaryWeaponId => primaryWeaponId;
         public string DisplayName => displayName;
+        public Sprite PortraitIcon => portraitIcon;
         public float MaxHealth => maxHealth;
         public float WalkSpeed => walkSpeed;
         public float SprintSpeed => sprintSpeed;

@@ -1,0 +1,27 @@
+IRISTRACE FPS — ARCHITECTURE OVERVIEW
+
+EDITOR
+Owns the windows, configuration wizards, asset libraries, generators and project validation.
+Editor code must not be referenced by Runtime code.
+
+RUNTIME MODULES
+Core       Shared contracts such as damage, health, input and weapon interfaces.
+Characters Player controller, character configuration and health.
+Input      New Input System adapter; gameplay modules use input contracts.
+Weapons    Weapon configuration, hitscan fire, ammo and reload.
+Abilities  Reusable ability contract and sample Dash/Heal abilities.
+Enemies    Training target, enemy health and simple AI behavior.
+UI         Runtime HUD.
+
+DATA FLOW
+Editor wizard -> saved configuration -> prefab generator -> prefab in scene.
+At runtime, input contracts trigger movement, weapons and abilities.
+Weapons apply damage through shared target contracts, not concrete enemy classes.
+
+GENERATED CONTENT
+Assets/IrisTraceFPS_Generated/Configurations/
+Assets/IrisTraceFPS_Generated/Prefabs/
+Assets/IrisTraceFPS_Generated/Scenes/
+
+Keep custom scripts outside the IrisTraceFPS source folders where possible.
+Prefer interfaces and separate components over editing the framework's core scripts.

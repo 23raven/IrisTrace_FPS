@@ -1,32 +1,20 @@
-using System;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace IrisTrace.Editor.UI
 {
+    /// <summary>Single fixed IrisTrace editor palette.</summary>
     internal static class IrisTraceTheme
     {
-        private const string PreferenceKey = "IrisTrace.Theme.DarkMode";
-        public static event Action ThemeChanged;
-
-        public static bool IsDark => EditorPrefs.GetBool(PreferenceKey, true);
-
-        public static Color Background => IsDark ? Hex(0x383838) : Hex(0xF3EFF5);
-        public static Color Surface => IsDark ? Hex(0x25282B) : new Color32(243, 239, 245, 255);
-        public static Color SurfaceStrong => IsDark ? Hex(0x383B40) : new Color32(69, 73, 85, 24);
-        public static Color Border => IsDark ? new Color32(69, 73, 85, 205) : new Color32(69, 73, 85, 75);
-        public static Color PrimaryText => IsDark ? Hex(0xF3EFF5) : Hex(0x0D0A0B);
-        public static Color SecondaryText => IsDark ? new Color32(243, 239, 245, 178) : Hex(0x454955);
-        public static Color Accent => IsDark ? Hex(0x72B01D) : Hex(0x3F7D20);
-        public static Color AccentHover => IsDark ? Hex(0x3F7D20) : Hex(0x72B01D);
-        public static Color AccentText => IsDark ? Hex(0x0D0A0B) : Hex(0xF3EFF5);
-
-        public static void Toggle()
-        {
-            EditorPrefs.SetBool(PreferenceKey, !IsDark);
-            EditorApplication.delayCall += () => ThemeChanged?.Invoke();
-        }
+        public static Color Background => Hex(0x383838);
+        public static Color Surface => Hex(0x25282B);
+        public static Color SurfaceStrong => Hex(0x383B40);
+        public static Color Border => new Color32(69, 73, 85, 205);
+        public static Color PrimaryText => Hex(0xF3EFF5);
+        public static Color SecondaryText => new Color32(243, 239, 245, 178);
+        public static Color Accent => Hex(0x72B01D);
+        public static Color AccentHover => Hex(0x3F7D20);
+        public static Color AccentText => Hex(0x0D0A0B);
 
         public static void ApplyBackground(VisualElement element)
         {

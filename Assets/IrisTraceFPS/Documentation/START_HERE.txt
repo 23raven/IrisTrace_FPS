@@ -1,0 +1,19 @@
+IRISTRACE FPS — QUICK START
+
+REQUIREMENTS
+- Unity 6.3 or newer.
+- Input System package installed.
+- Active Input Handling set to Input System Package (New).
+
+OPEN
+Window > IrisTrace FPS > Open Generator
+
+FIRST TEST
+1. Create FPS Hero and save the configuration.
+2. Create Enemy and generate a target or Basic AI bot.
+3. Open Create Test Arena, then press Play.
+4. Test movement, jump, shooting, reload, health and abilities.
+5. Open Project Validation and run checks.
+
+Generated assets are saved under Assets/IrisTraceFPS_Generated/.
+Create a NEW hero prefab after updating the tool; old prefabs are not rebuilt automatically.

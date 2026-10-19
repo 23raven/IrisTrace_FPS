@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5778014a14f90a4883e6c798d5bcdee, type: 3}
   m_Name: Iris_PrimaryWeapon
   m_EditorClassIdentifier: IrisTrace.Runtime.Weapons::IrisTrace.Runtime.Weapons.WeaponDefinition
-  id: 9e2cd2340ff9487a9e7cade835e95095
+  id: cde86d1716c1425098928885c122d6be
   displayName: Iris Primary Weapon
   damage: 25
   shotsPerSecond: 6

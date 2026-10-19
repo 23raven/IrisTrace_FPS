@@ -29,12 +29,6 @@ namespace IrisTrace.Editor.Windows
             window.Show();
         }
 
-        private void OnEnable() => IrisTraceTheme.ThemeChanged += RebuildForTheme;
-
-        private void OnDisable() => IrisTraceTheme.ThemeChanged -= RebuildForTheme;
-
-        private void RebuildForTheme() => CreateGUI();
-
         public void CreateGUI()
         {
             rootVisualElement.Clear();
@@ -99,15 +93,8 @@ namespace IrisTrace.Editor.Windows
             titleStack.Add(title);
             titleStack.Add(subtitle);
 
-            Button themeButton = new Button(() => IrisTraceTheme.Toggle())
-            {
-                text = IrisTraceTheme.IsDark ? "Light Mode" : "Dark Mode"
-            };
-            StyleSecondaryButton(themeButton, 86f);
-
             header.Add(mark);
             header.Add(titleStack);
-            header.Add(themeButton);
             return header;
         }
 

@@ -43,10 +43,6 @@ namespace IrisTrace.Editor.Windows
             window.Show();
         }
 
-        private void OnEnable() => IrisTraceTheme.ThemeChanged += RebuildForTheme;
-        private void OnDisable() => IrisTraceTheme.ThemeChanged -= RebuildForTheme;
-        private void RebuildForTheme() => CreateGUI();
-
         public void CreateGUI()
         {
             rootVisualElement.Clear();

@@ -1,0 +1,30 @@
+IRISTRACE FPS — MVP RELEASE CHECKLIST
+
+UNITY IMPORT
+[ ] Open the project in Unity 6.3+.
+[ ] Wait for compilation; Console has no IrisTrace errors.
+[ ] Confirm Input System package is installed and enabled.
+
+EDITOR
+[ ] Open IrisTrace FPS main window.
+[ ] Confirm fixed IrisTrace theme uses background #383838.
+[ ] Create, save and duplicate a hero configuration.
+[ ] Create and save an enemy configuration.
+[ ] Create/edit a weapon configuration.
+
+PLAY MODE
+[ ] Generate a NEW hero prefab.
+[ ] Verify camera, WASD, mouse look, jump and sprint.
+[ ] Verify firing, magazine, reserve ammo and reload.
+[ ] Hit a training target; target health decreases and it is destroyed at zero.
+[ ] Verify the weapon does not hit the player itself.
+[ ] Verify Dash and Heal when enabled.
+[ ] Check Basic AI behavior in a scene with suitable navigation setup.
+
+VALIDATION
+[ ] Create Test Arena.
+[ ] Run Project Validation and resolve all Fail results.
+[ ] Confirm generated files are under Assets/IrisTraceFPS_Generated/.
+[ ] Test import in a clean copy of the project.
+
+Do not publish as a stable release until every applicable check is verified in Unity.
