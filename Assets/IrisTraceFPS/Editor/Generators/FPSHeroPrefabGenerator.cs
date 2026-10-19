@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using IrisTrace.Runtime.Characters;
 using IrisTrace.Runtime.Weapons;
 using IrisTrace.Runtime.Input;
+using IrisTrace.Runtime.Abilities;
 using IrisTrace.Runtime.UI;
 
 namespace IrisTrace.Editor.Generators
@@ -72,10 +73,20 @@ namespace IrisTrace.Editor.Generators
                     definition.JumpBinding,
                     definition.SprintBinding,
                     definition.FireBinding,
-                    definition.ReloadBinding);
+                    definition.ReloadBinding,
+                    definition.Ability1Binding,
+                    definition.Ability2Binding,
+                    definition.CrouchBinding);
 
                 WeaponInputHandler weaponInput = buildRoot.AddComponent<WeaponInputHandler>();
                 weaponInput.Configure(weapon, inputReader);
+
+                MonoBehaviour ability1 = CreateAbility(buildRoot, definition.Ability1Type,
+                    definition.Ability1Value, definition.Ability1Cooldown);
+                MonoBehaviour ability2 = CreateAbility(buildRoot, definition.Ability2Type,
+                    definition.Ability2Value, definition.Ability2Cooldown);
+                AbilityInputHandler abilityInput = buildRoot.AddComponent<AbilityInputHandler>();
+                abilityInput.Configure(inputReader, ability1, ability2);
 
                 // The HUD reads telemetry interfaces and does not depend on concrete weapon classes.
                 buildRoot.AddComponent<FPSRuntimeHUD>();
@@ -113,6 +124,25 @@ namespace IrisTrace.Editor.Generators
             EditorGUIUtility.PingObject(instance);
             EditorSceneManager.MarkSceneDirty(scene);
             return instance;
+        }
+
+        private static MonoBehaviour CreateAbility(GameObject root, AbilityKind kind, float value, float cooldown)
+        {
+            switch (kind)
+            {
+                case AbilityKind.None:
+                    return null;
+                case AbilityKind.Dash:
+                    DashAbility dash = root.AddComponent<DashAbility>();
+                    dash.Configure(value, cooldown);
+                    return dash;
+                case AbilityKind.Heal:
+                    HealAbility heal = root.AddComponent<HealAbility>();
+                    heal.Configure(value, cooldown);
+                    return heal;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported built-in ability type.");
+            }
         }
 
         private static void DisableOtherMainCameras(Scene scene, Camera generatedCamera)

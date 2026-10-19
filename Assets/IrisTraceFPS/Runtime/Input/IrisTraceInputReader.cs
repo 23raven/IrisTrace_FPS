@@ -5,12 +5,12 @@ using IrisTrace.Runtime.Core;
 namespace IrisTrace.Runtime.Input
 {
     /// <summary>
-    /// New Input System adapter. Bindings are stored as Input System control paths
-    /// for keyboard keys and mouse buttons.
+    /// New Input System adapter. Runtime gameplay modules consume interfaces,
+    /// not this concrete input implementation.
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(-1000)]
-    public sealed class IrisTraceInputReader : MonoBehaviour, ICharacterInput, IWeaponInput
+    public sealed class IrisTraceInputReader : MonoBehaviour, ICharacterInput, IWeaponInput, IAbilityInput
     {
         [Header("Movement bindings")]
         [SerializeField] private string moveForward = "<Keyboard>/w";
@@ -19,29 +19,41 @@ namespace IrisTrace.Runtime.Input
         [SerializeField] private string moveRight = "<Keyboard>/d";
         [SerializeField] private string jump = "<Keyboard>/space";
         [SerializeField] private string sprint = "<Keyboard>/leftShift";
+        [SerializeField] private string crouch = "<Keyboard>/leftCtrl";
 
         [Header("Weapon bindings")]
         [SerializeField] private string fire = "<Mouse>/leftButton";
         [SerializeField] private string reload = "<Keyboard>/r";
 
+        [Header("Ability bindings")]
+        [SerializeField] private string ability1 = "<Keyboard>/q";
+        [SerializeField] private string ability2 = "<Keyboard>/e";
+
         private InputAction moveAction;
         private InputAction lookAction;
         private InputAction jumpAction;
         private InputAction sprintAction;
+        private InputAction crouchAction;
         private InputAction fireAction;
         private InputAction reloadAction;
+        private InputAction ability1Action;
+        private InputAction ability2Action;
         private InputAction cancelAction;
 
         public Vector2 Move => moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
         public Vector2 LookDelta => lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
         public bool JumpPressed => jumpAction != null && jumpAction.WasPressedThisFrame();
         public bool SprintHeld => sprintAction != null && sprintAction.IsPressed();
+        public bool CrouchHeld => crouchAction != null && crouchAction.IsPressed();
         public bool CancelPressed => cancelAction != null && cancelAction.WasPressedThisFrame();
         public bool FirePressed => fireAction != null && fireAction.WasPressedThisFrame();
         public bool FireHeld => fireAction != null && fireAction.IsPressed();
         public bool FireReleased => fireAction != null && fireAction.WasReleasedThisFrame();
         public bool ReloadPressed => reloadAction != null && reloadAction.WasPressedThisFrame();
+        public bool Ability1Pressed => ability1Action != null && ability1Action.WasPressedThisFrame();
+        public bool Ability2Pressed => ability2Action != null && ability2Action.WasPressedThisFrame();
 
+        // Backward-compatible overload for any existing code that configures only base controls.
         public void Configure(
             string moveForwardPath,
             string moveBackwardPath,
@@ -52,14 +64,52 @@ namespace IrisTrace.Runtime.Input
             string firePath,
             string reloadPath)
         {
+            Configure(moveForwardPath, moveBackwardPath, moveLeftPath, moveRightPath,
+                jumpPath, sprintPath, firePath, reloadPath,
+                "<Keyboard>/q", "<Keyboard>/e", "<Keyboard>/leftCtrl");
+        }
+
+        public void Configure(
+            string moveForwardPath,
+            string moveBackwardPath,
+            string moveLeftPath,
+            string moveRightPath,
+            string jumpPath,
+            string sprintPath,
+            string firePath,
+            string reloadPath,
+            string ability1Path,
+            string ability2Path)
+        {
+            Configure(moveForwardPath, moveBackwardPath, moveLeftPath, moveRightPath,
+                jumpPath, sprintPath, firePath, reloadPath, ability1Path, ability2Path,
+                "<Keyboard>/leftCtrl");
+        }
+
+        public void Configure(
+            string moveForwardPath,
+            string moveBackwardPath,
+            string moveLeftPath,
+            string moveRightPath,
+            string jumpPath,
+            string sprintPath,
+            string firePath,
+            string reloadPath,
+            string ability1Path,
+            string ability2Path,
+            string crouchPath)
+        {
             moveForward = SafePath(moveForwardPath, "<Keyboard>/w");
             moveBackward = SafePath(moveBackwardPath, "<Keyboard>/s");
             moveLeft = SafePath(moveLeftPath, "<Keyboard>/a");
             moveRight = SafePath(moveRightPath, "<Keyboard>/d");
             jump = SafePath(jumpPath, "<Keyboard>/space");
             sprint = SafePath(sprintPath, "<Keyboard>/leftShift");
+            crouch = SafePath(crouchPath, "<Keyboard>/leftCtrl");
             fire = SafePath(firePath, "<Mouse>/leftButton");
             reload = SafePath(reloadPath, "<Keyboard>/r");
+            ability1 = SafePath(ability1Path, "<Keyboard>/q");
+            ability2 = SafePath(ability2Path, "<Keyboard>/e");
 
             if (Application.isPlaying && isActiveAndEnabled)
                 CreateActions();
@@ -87,16 +137,22 @@ namespace IrisTrace.Runtime.Input
             lookAction = new InputAction("Look", InputActionType.Value, "<Mouse>/delta", expectedControlType: "Vector2");
             jumpAction = new InputAction("Jump", InputActionType.Button, SafePath(jump, "<Keyboard>/space"));
             sprintAction = new InputAction("Sprint", InputActionType.Button, SafePath(sprint, "<Keyboard>/leftShift"));
+            crouchAction = new InputAction("Crouch", InputActionType.Button, SafePath(crouch, "<Keyboard>/leftCtrl"));
             fireAction = new InputAction("Fire", InputActionType.Button, SafePath(fire, "<Mouse>/leftButton"));
             reloadAction = new InputAction("Reload", InputActionType.Button, SafePath(reload, "<Keyboard>/r"));
+            ability1Action = new InputAction("Ability1", InputActionType.Button, SafePath(ability1, "<Keyboard>/q"));
+            ability2Action = new InputAction("Ability2", InputActionType.Button, SafePath(ability2, "<Keyboard>/e"));
             cancelAction = new InputAction("Cancel", InputActionType.Button, "<Keyboard>/escape");
 
             moveAction.Enable();
             lookAction.Enable();
             jumpAction.Enable();
             sprintAction.Enable();
+            crouchAction.Enable();
             fireAction.Enable();
             reloadAction.Enable();
+            ability1Action.Enable();
+            ability2Action.Enable();
             cancelAction.Enable();
         }
 
@@ -106,8 +162,11 @@ namespace IrisTrace.Runtime.Input
             DisposeAction(ref lookAction);
             DisposeAction(ref jumpAction);
             DisposeAction(ref sprintAction);
+            DisposeAction(ref crouchAction);
             DisposeAction(ref fireAction);
             DisposeAction(ref reloadAction);
+            DisposeAction(ref ability1Action);
+            DisposeAction(ref ability2Action);
             DisposeAction(ref cancelAction);
         }
 

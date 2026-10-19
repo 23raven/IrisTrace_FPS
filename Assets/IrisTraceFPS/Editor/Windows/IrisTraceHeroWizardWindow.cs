@@ -19,6 +19,9 @@ namespace IrisTrace.Editor.Windows
         private FloatField walkSpeedField;
         private FloatField sprintSpeedField;
         private FloatField jumpHeightField;
+        private Toggle crouchEnabledField;
+        private FloatField crouchSpeedField;
+        private FloatField crouchedHeightField;
         private FloatField sensitivityField;
         private FloatField fieldOfViewField;
         private FloatField weaponDamageField;
@@ -42,6 +45,7 @@ namespace IrisTrace.Editor.Windows
         private KeyBindingField rightKeyField;
         private KeyBindingField jumpKeyField;
         private KeyBindingField sprintKeyField;
+        private KeyBindingField crouchKeyField;
         private KeyBindingField fireKeyField;
         private KeyBindingField reloadKeyField;
         private KeyBindingField ability1KeyField;
@@ -87,7 +91,7 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildHeader());
             content.Add(BuildSection("BASICS", "Name your character and set core stats."));
             content.Add(BuildBasicsPanel());
-            content.Add(BuildSection("MOVEMENT & CAMERA", "These values become the character's starting configuration."));
+            content.Add(BuildSection("MOVEMENT & CAMERA", "Configure movement speed, jump and optional crouching."));
             content.Add(BuildMovementPanel());
             content.Add(BuildSection("DEFAULT WEAPON", "Configure the generated hitscan weapon."));
             content.Add(BuildWeaponPanel());
@@ -178,17 +182,26 @@ namespace IrisTrace.Editor.Windows
             walkSpeedField = new FloatField("Walk Speed") { value = 5f };
             sprintSpeedField = new FloatField("Sprint Speed") { value = 8f };
             jumpHeightField = new FloatField("Jump Height") { value = 1.5f };
+            crouchEnabledField = new Toggle("Enable Crouch") { value = true };
+            crouchSpeedField = new FloatField("Crouch Speed") { value = 2.5f };
+            crouchedHeightField = new FloatField("Crouched Height") { value = 1.1f };
             sensitivityField = new FloatField("Mouse Sensitivity") { value = 1f };
             fieldOfViewField = new FloatField("Camera Field of View") { value = 90f };
 
             StyleField(walkSpeedField);
             StyleField(sprintSpeedField);
             StyleField(jumpHeightField);
+            StyleField(crouchEnabledField);
+            StyleField(crouchSpeedField);
+            StyleField(crouchedHeightField);
             StyleField(sensitivityField);
             StyleField(fieldOfViewField);
             panel.Add(walkSpeedField);
             panel.Add(sprintSpeedField);
             panel.Add(jumpHeightField);
+            panel.Add(crouchEnabledField);
+            panel.Add(crouchSpeedField);
+            panel.Add(crouchedHeightField);
             panel.Add(sensitivityField);
             panel.Add(fieldOfViewField);
             return panel;
@@ -263,6 +276,7 @@ namespace IrisTrace.Editor.Windows
             rightKeyField = KeyField("Move Right", "<Keyboard>/d");
             jumpKeyField = KeyField("Jump", "<Keyboard>/space");
             sprintKeyField = KeyField("Sprint", "<Keyboard>/leftShift");
+            crouchKeyField = KeyField("Crouch (Hold)", "<Keyboard>/leftCtrl");
             fireKeyField = KeyField("Fire", "<Mouse>/leftButton");
             reloadKeyField = KeyField("Reload", "<Keyboard>/r");
 
@@ -272,6 +286,7 @@ namespace IrisTrace.Editor.Windows
             panel.Add(rightKeyField);
             panel.Add(jumpKeyField);
             panel.Add(sprintKeyField);
+            panel.Add(crouchKeyField);
             panel.Add(fireKeyField);
             panel.Add(reloadKeyField);
             return panel;
@@ -465,6 +480,9 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "walkSpeed", walkSpeedField.value);
             SetFloat(serialized, "sprintSpeed", sprintSpeedField.value);
             SetFloat(serialized, "jumpHeight", jumpHeightField.value);
+            SetBool(serialized, "crouchEnabled", crouchEnabledField.value);
+            SetFloat(serialized, "crouchSpeed", crouchSpeedField.value);
+            SetFloat(serialized, "crouchedHeight", crouchedHeightField.value);
             SetFloat(serialized, "mouseSensitivity", sensitivityField.value);
             SetFloat(serialized, "cameraFieldOfView", fieldOfViewField.value);
             SetString(serialized, "moveForwardBinding", forwardKeyField.Value);
@@ -473,6 +491,7 @@ namespace IrisTrace.Editor.Windows
             SetString(serialized, "moveRightBinding", rightKeyField.Value);
             SetString(serialized, "jumpBinding", jumpKeyField.Value);
             SetString(serialized, "sprintBinding", sprintKeyField.Value);
+            SetString(serialized, "crouchBinding", crouchKeyField.Value);
             SetString(serialized, "fireBinding", fireKeyField.Value);
             SetString(serialized, "reloadBinding", reloadKeyField.Value);
             SetInt(serialized, "ability1Type", (int)GetAbility1Type());
@@ -546,6 +565,14 @@ namespace IrisTrace.Editor.Windows
                 return false;
             }
 
+            if (crouchEnabledField.value && (crouchSpeedField.value <= 0f ||
+                crouchedHeightField.value <= 0.65f || crouchedHeightField.value >= 1.75f))
+            {
+                EditorUtility.DisplayDialog("Invalid Crouch Settings",
+                    "Crouch Speed must be positive. Crouched Height must be greater than 0.65 and less than the 1.8 m standing height.", "OK");
+                return false;
+            }
+
             if (fieldOfViewField.value < 60f || fieldOfViewField.value > 120f)
             {
                 EditorUtility.DisplayDialog("Invalid Camera FOV", "Camera Field of View must be between 60 and 120 degrees.", "OK");
@@ -578,6 +605,7 @@ namespace IrisTrace.Editor.Windows
                 "Move Forward", "Move Backward", "Move Left", "Move Right",
                 "Jump", "Sprint", "Fire", "Reload"
             };
+            if (crouchEnabledField.value) { fields.Add(crouchKeyField); labels.Add("Crouch"); }
             if (ability1Enabled) { fields.Add(ability1KeyField); labels.Add("Ability 1"); }
             if (ability2Enabled) { fields.Add(ability2KeyField); labels.Add("Ability 2"); }
 

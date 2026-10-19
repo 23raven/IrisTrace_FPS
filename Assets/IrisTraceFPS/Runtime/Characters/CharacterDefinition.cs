@@ -26,6 +26,9 @@ namespace IrisTrace.Runtime.Characters
         [SerializeField, Min(0.1f)] private float walkSpeed = 5f;
         [SerializeField, Min(0.1f)] private float sprintSpeed = 8f;
         [SerializeField, Min(0.1f)] private float jumpHeight = 1.5f;
+        [SerializeField] private bool crouchEnabled = true;
+        [SerializeField, Min(0.1f)] private float crouchSpeed = 2.5f;
+        [SerializeField, Min(0.65f)] private float crouchedHeight = 1.1f;
 
         [Header("Camera")]
         [SerializeField, Min(0.1f)] private float mouseSensitivity = 1f;
@@ -38,6 +41,7 @@ namespace IrisTrace.Runtime.Characters
         [SerializeField] private string moveRightBinding = "<Keyboard>/d";
         [SerializeField] private string jumpBinding = "<Keyboard>/space";
         [SerializeField] private string sprintBinding = "<Keyboard>/leftShift";
+        [SerializeField] private string crouchBinding = "<Keyboard>/leftCtrl";
         [SerializeField] private string fireBinding = "<Mouse>/leftButton";
         [SerializeField] private string reloadBinding = "<Keyboard>/r";
 
@@ -61,6 +65,9 @@ namespace IrisTrace.Runtime.Characters
         public float WalkSpeed => walkSpeed;
         public float SprintSpeed => sprintSpeed;
         public float JumpHeight => jumpHeight;
+        public bool CrouchEnabled => crouchEnabled;
+        public float CrouchSpeed => crouchSpeed;
+        public float CrouchedHeight => crouchedHeight;
         public float MouseSensitivity => mouseSensitivity;
         public float CameraFieldOfView => cameraFieldOfView;
         public string MoveForwardBinding => moveForwardBinding;
@@ -69,6 +76,7 @@ namespace IrisTrace.Runtime.Characters
         public string MoveRightBinding => moveRightBinding;
         public string JumpBinding => jumpBinding;
         public string SprintBinding => sprintBinding;
+        public string CrouchBinding => crouchBinding;
         public string FireBinding => fireBinding;
         public string ReloadBinding => reloadBinding;
         public AbilityKind Ability1Type => ability1Type;
