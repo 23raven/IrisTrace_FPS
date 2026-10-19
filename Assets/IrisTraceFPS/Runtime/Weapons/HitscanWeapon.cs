@@ -10,6 +10,7 @@ namespace IrisTrace.Runtime.Weapons
     {
         [SerializeField] private WeaponDefinition definition;
         [SerializeField] private Camera viewCamera;
+        [SerializeField] private Transform ownerRoot;
         [SerializeField] private LayerMask hitMask = ~0;
 
         private int currentAmmoInMagazine;
@@ -23,10 +24,12 @@ namespace IrisTrace.Runtime.Weapons
         public bool IsReloading => reloadRoutine != null;
         public string WeaponDisplayName => definition != null ? definition.DisplayName : "WEAPON";
 
-        public void Configure(WeaponDefinition weaponDefinition, Camera cameraForShots)
+        public void Configure(WeaponDefinition weaponDefinition, Camera cameraForShots, Transform weaponOwnerRoot = null)
         {
             definition = weaponDefinition;
             viewCamera = cameraForShots;
+            ownerRoot = weaponOwnerRoot;
+            ResolveOwnerRoot();
             ResetAmmo();
         }
 
@@ -35,6 +38,7 @@ namespace IrisTrace.Runtime.Weapons
             if (viewCamera == null)
                 viewCamera = GetComponentInParent<Camera>();
 
+            ResolveOwnerRoot();
             ResetAmmo();
         }
 
@@ -83,15 +87,42 @@ namespace IrisTrace.Runtime.Weapons
             Vector3 direction = viewCamera.transform.forward;
             Debug.DrawRay(origin, direction * definition.Range, Color.green, 0.15f);
 
-            if (!Physics.Raycast(origin, direction, out RaycastHit hit, definition.Range, hitMask, QueryTriggerInteraction.Ignore))
+            // Ignore every collider belonging to the shooter and resolve the nearest external hit.
+            // This keeps the weapon from damaging its own character while preserving wall occlusion.
+            RaycastHit[] hits = Physics.RaycastAll(
+                origin,
+                direction,
+                definition.Range,
+                hitMask,
+                QueryTriggerInteraction.Ignore);
+
+            bool foundExternalHit = false;
+            RaycastHit closestHit = default;
+            for (int i = 0; i < hits.Length; i++)
+            {
+                Collider candidate = hits[i].collider;
+                if (candidate == null || IsOwnerCollider(candidate))
+                    continue;
+
+                if (!foundExternalHit || hits[i].distance < closestHit.distance)
+                {
+                    closestHit = hits[i];
+                    foundExternalHit = true;
+                }
+            }
+
+            if (!foundExternalHit)
                 return;
 
-            IDamageable damageable = FindDamageable(hit.collider);
-            if (damageable != null)
-            {
-                damageable.TakeDamage(definition.Damage);
-                Debug.Log($"[{definition.DisplayName}] Hit {hit.collider.name} for {definition.Damage} damage.", hit.collider);
-            }
+            IDamageable damageable = FindDamageable(closestHit.collider);
+            if (damageable == null)
+                return;
+
+            damageable.TakeDamage(definition.Damage);
+            string targetName = damageable is Component targetComponent
+                ? targetComponent.gameObject.name
+                : closestHit.collider.gameObject.name;
+            Debug.Log($"[{definition.DisplayName}] Hit {targetName} for {definition.Damage} damage.", closestHit.collider);
         }
 
         private IEnumerator ReloadRoutine()
@@ -126,6 +157,29 @@ namespace IrisTrace.Runtime.Weapons
 
             currentAmmoInMagazine = definition.MagazineSize;
             reserveAmmo = definition.StartingReserveAmmo;
+        }
+
+        private void ResolveOwnerRoot()
+        {
+            if (ownerRoot != null)
+                return;
+
+            // Generated heroes use CharacterController. This fallback also handles prefabs
+            // generated before ownerRoot was added to the weapon configuration.
+            CharacterController ownerController = viewCamera != null
+                ? viewCamera.GetComponentInParent<CharacterController>()
+                : GetComponentInParent<CharacterController>();
+
+            ownerRoot = ownerController != null ? ownerController.transform : transform.root;
+        }
+
+        private bool IsOwnerCollider(Collider candidate)
+        {
+            if (ownerRoot == null || candidate == null)
+                return false;
+
+            Transform candidateTransform = candidate.transform;
+            return candidateTransform == ownerRoot || candidateTransform.IsChildOf(ownerRoot);
         }
 
         private static IDamageable FindDamageable(Collider hitCollider)

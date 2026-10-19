@@ -29,6 +29,13 @@ namespace IrisTrace.Editor.Windows
         private FloatField weaponRangeField;
         private Toggle automaticWeaponField;
 
+        private EnumField ability1TypeField;
+        private FloatField ability1CooldownField;
+        private FloatField ability1ValueField;
+        private EnumField ability2TypeField;
+        private FloatField ability2CooldownField;
+        private FloatField ability2ValueField;
+
         private KeyBindingField forwardKeyField;
         private KeyBindingField backwardKeyField;
         private KeyBindingField leftKeyField;
@@ -37,6 +44,8 @@ namespace IrisTrace.Editor.Windows
         private KeyBindingField sprintKeyField;
         private KeyBindingField fireKeyField;
         private KeyBindingField reloadKeyField;
+        private KeyBindingField ability1KeyField;
+        private KeyBindingField ability2KeyField;
         private KeyBindingField activeBindingField;
 
         private InputAction captureAction;
@@ -87,6 +96,8 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildMovementPanel());
             content.Add(BuildSection("DEFAULT WEAPON", "Configure the generated hitscan weapon."));
             content.Add(BuildWeaponPanel());
+            content.Add(BuildSection("ABILITIES", "Choose up to two built-in skills. Custom scripts can implement the same ability contract."));
+            content.Add(BuildAbilitiesPanel());
             content.Add(BuildSection("DEFAULT CONTROLS", "Click a binding, then press a key or mouse button. Esc cancels."));
             content.Add(BuildBindingsPanel());
             content.Add(BuildFooterActions());
@@ -220,6 +231,38 @@ namespace IrisTrace.Editor.Windows
             panel.Add(reloadDurationField);
             panel.Add(weaponRangeField);
             panel.Add(automaticWeaponField);
+            return panel;
+        }
+
+        private VisualElement BuildAbilitiesPanel()
+        {
+            VisualElement panel = BuildPanel();
+
+            ability1TypeField = new EnumField("Ability Slot 1", AbilityKind.Dash);
+            ability1KeyField = KeyField("Ability 1 Binding", "<Keyboard>/q");
+            ability1CooldownField = new FloatField("Ability 1 Cooldown (s)") { value = 5f };
+            ability1ValueField = new FloatField("Ability 1 Effect (dash metres / heal HP)") { value = 6f };
+
+            ability2TypeField = new EnumField("Ability Slot 2", AbilityKind.Heal);
+            ability2KeyField = KeyField("Ability 2 Binding", "<Keyboard>/e");
+            ability2CooldownField = new FloatField("Ability 2 Cooldown (s)") { value = 8f };
+            ability2ValueField = new FloatField("Ability 2 Effect (dash metres / heal HP)") { value = 25f };
+
+            StyleField(ability1TypeField);
+            StyleField(ability1CooldownField);
+            StyleField(ability1ValueField);
+            StyleField(ability2TypeField);
+            StyleField(ability2CooldownField);
+            StyleField(ability2ValueField);
+
+            panel.Add(ability1TypeField);
+            panel.Add(ability1KeyField);
+            panel.Add(ability1CooldownField);
+            panel.Add(ability1ValueField);
+            panel.Add(ability2TypeField);
+            panel.Add(ability2KeyField);
+            panel.Add(ability2CooldownField);
+            panel.Add(ability2ValueField);
             return panel;
         }
 
@@ -426,9 +469,11 @@ namespace IrisTrace.Editor.Windows
             string characterFolder = "Assets/IrisTraceFPS_Generated/Configurations/Characters";
             EnsureAssetFolder(characterFolder);
 
+            string primaryWeaponId = Guid.NewGuid().ToString("N");
             CharacterDefinition definition = CreateInstance<CharacterDefinition>();
             SerializedObject serialized = new SerializedObject(definition);
             SetString(serialized, "id", Guid.NewGuid().ToString("N"));
+            SetString(serialized, "primaryWeaponId", primaryWeaponId);
             SetString(serialized, "displayName", displayNameField.value.Trim());
             SetFloat(serialized, "maxHealth", maxHealthField.value);
             SetFloat(serialized, "walkSpeed", walkSpeedField.value);
@@ -444,6 +489,14 @@ namespace IrisTrace.Editor.Windows
             SetString(serialized, "sprintBinding", sprintKeyField.Value);
             SetString(serialized, "fireBinding", fireKeyField.Value);
             SetString(serialized, "reloadBinding", reloadKeyField.Value);
+            SetInt(serialized, "ability1Type", (int)GetAbility1Type());
+            SetString(serialized, "ability1Binding", ability1KeyField.Value);
+            SetFloat(serialized, "ability1Cooldown", ability1CooldownField.value);
+            SetFloat(serialized, "ability1Value", ability1ValueField.value);
+            SetInt(serialized, "ability2Type", (int)GetAbility2Type());
+            SetString(serialized, "ability2Binding", ability2KeyField.Value);
+            SetFloat(serialized, "ability2Cooldown", ability2CooldownField.value);
+            SetFloat(serialized, "ability2Value", ability2ValueField.value);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             string characterPath = AssetDatabase.GenerateUniqueAssetPath($"{characterFolder}/{safeName}.asset");
@@ -453,7 +506,7 @@ namespace IrisTrace.Editor.Windows
             EnsureAssetFolder(weaponFolder);
             WeaponDefinition weaponDefinition = CreateInstance<WeaponDefinition>();
             SerializedObject weaponSerialized = new SerializedObject(weaponDefinition);
-            SetString(weaponSerialized, "id", Guid.NewGuid().ToString("N"));
+            SetString(weaponSerialized, "id", primaryWeaponId);
             SetString(weaponSerialized, "displayName", safeName + " Primary Weapon");
             SetFloat(weaponSerialized, "damage", weaponDamageField.value);
             SetFloat(weaponSerialized, "shotsPerSecond", shotsPerSecondField.value);
@@ -482,7 +535,7 @@ namespace IrisTrace.Editor.Windows
             }
 
             EditorUtility.DisplayDialog("Hero Generated",
-                $"'{definition.DisplayName}' was saved as a prefab and added to the active scene at (0, 0, 0).\n\nMovement, camera, health, hitscan firing, magazine, and reload are ready.", "OK");
+                $"'{definition.DisplayName}' was saved as a prefab and added to the active scene at (0, 0, 0).\n\nMovement, camera, health, weapon, reload, and selected abilities are ready.", "OK");
             Close();
         }
 
@@ -520,19 +573,30 @@ namespace IrisTrace.Editor.Windows
                 return false;
             }
 
-            KeyBindingField[] fields =
+            bool ability1Enabled = GetAbility1Type() != AbilityKind.None;
+            bool ability2Enabled = GetAbility2Type() != AbilityKind.None;
+            if ((ability1Enabled && (ability1CooldownField.value <= 0f || ability1ValueField.value <= 0f)) ||
+                (ability2Enabled && (ability2CooldownField.value <= 0f || ability2ValueField.value <= 0f)))
+            {
+                EditorUtility.DisplayDialog("Invalid Ability Settings", "Enabled abilities need a positive effect value and cooldown.", "OK");
+                return false;
+            }
+
+            List<KeyBindingField> fields = new List<KeyBindingField>
             {
                 forwardKeyField, backwardKeyField, leftKeyField, rightKeyField,
                 jumpKeyField, sprintKeyField, fireKeyField, reloadKeyField
             };
-            string[] labels =
+            List<string> labels = new List<string>
             {
                 "Move Forward", "Move Backward", "Move Left", "Move Right",
                 "Jump", "Sprint", "Fire", "Reload"
             };
+            if (ability1Enabled) { fields.Add(ability1KeyField); labels.Add("Ability 1"); }
+            if (ability2Enabled) { fields.Add(ability2KeyField); labels.Add("Ability 2"); }
 
             Dictionary<string, string> assignedPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < fields.Length; i++)
+            for (int i = 0; i < fields.Count; i++)
             {
                 string path = fields[i].Value;
                 if (string.IsNullOrWhiteSpace(path))
@@ -552,6 +616,16 @@ namespace IrisTrace.Editor.Windows
             }
 
             return true;
+        }
+
+        private AbilityKind GetAbility1Type()
+        {
+            return ability1TypeField != null && ability1TypeField.value is AbilityKind value ? value : AbilityKind.None;
+        }
+
+        private AbilityKind GetAbility2Type()
+        {
+            return ability2TypeField != null && ability2TypeField.value is AbilityKind value ? value : AbilityKind.None;
         }
 
         private sealed class KeyBindingField : VisualElement

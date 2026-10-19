@@ -61,7 +61,7 @@ namespace IrisTrace.Editor.Generators
                 weaponMount.transform.localRotation = Quaternion.identity;
 
                 HitscanWeapon weapon = weaponMount.AddComponent<HitscanWeapon>();
-                weapon.Configure(weaponDefinition, playerCamera);
+                weapon.Configure(weaponDefinition, playerCamera, buildRoot.transform);
 
                 IrisTraceInputReader inputReader = buildRoot.AddComponent<IrisTraceInputReader>();
                 inputReader.Configure(

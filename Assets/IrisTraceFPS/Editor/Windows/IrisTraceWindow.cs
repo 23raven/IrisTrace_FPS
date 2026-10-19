@@ -3,7 +3,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using IrisTrace.Editor.UI;
-using IrisTrace.Editor.Generators;
 
 namespace IrisTrace.Editor.Windows
 {
@@ -67,9 +66,18 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildActionCard(
                 "02",
                 "Enemy",
-                "Create a stationary target to test shots, damage and weapon range.",
+                "Create a stationary target or a simple AI bot to test combat.",
                 "Create Enemy",
-                CreateTrainingTarget,
+                IrisTraceEnemyWizardWindow.Open,
+                false));
+            content.Add(BuildDivider());
+            content.Add(BuildSectionLabel("LIBRARY"));
+            content.Add(BuildActionCard(
+                "03",
+                "Weapon Library",
+                "Browse, edit and duplicate reusable weapon configurations.",
+                "Open Weapon Library",
+                IrisTraceWeaponLibraryWindow.Open,
                 false));
             content.Add(BuildStatus());
             content.Add(BuildFooter());
@@ -310,24 +318,6 @@ namespace IrisTrace.Editor.Windows
             text.style.letterSpacing = 0.5f;
             footer.Add(text);
             return footer;
-        }
-
-        private static void CreateTrainingTarget()
-        {
-            try
-            {
-                GameObject target = TrainingTargetPrefabGenerator.Generate();
-                if (target != null)
-                    Debug.Log("IrisTrace FPS: training target generated.", target);
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception);
-                EditorUtility.DisplayDialog(
-                    "Could Not Create Target",
-                    "IrisTrace FPS could not create the training target. Check the Console for details.",
-                    "OK");
-            }
         }
 
         private static void Radius(VisualElement element, float radius)

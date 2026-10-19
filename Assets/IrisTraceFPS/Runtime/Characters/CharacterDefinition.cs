@@ -2,11 +2,20 @@ using UnityEngine;
 
 namespace IrisTrace.Runtime.Characters
 {
+    /// <summary>Built-in ability presets available in the first IrisTrace FPS release.</summary>
+    public enum AbilityKind
+    {
+        None = 0,
+        Dash = 1,
+        Heal = 2
+    }
+
     /// <summary>Saved configuration for a generated IrisTrace FPS character.</summary>
     [CreateAssetMenu(menuName = "IrisTrace FPS/Character Definition", fileName = "NewCharacter")]
     public sealed class CharacterDefinition : ScriptableObject
     {
         [SerializeField, HideInInspector] private string id;
+        [SerializeField, HideInInspector] private string primaryWeaponId;
         [SerializeField] private string displayName = "New FPS Hero";
 
         [Header("Vitals")]
@@ -31,7 +40,20 @@ namespace IrisTrace.Runtime.Characters
         [SerializeField] private string fireBinding = "<Mouse>/leftButton";
         [SerializeField] private string reloadBinding = "<Keyboard>/r";
 
+        [Header("Ability Slot 1")]
+        [SerializeField] private AbilityKind ability1Type = AbilityKind.Dash;
+        [SerializeField] private string ability1Binding = "<Keyboard>/q";
+        [SerializeField, Min(0.1f)] private float ability1Cooldown = 5f;
+        [SerializeField, Min(0.1f)] private float ability1Value = 6f;
+
+        [Header("Ability Slot 2")]
+        [SerializeField] private AbilityKind ability2Type = AbilityKind.Heal;
+        [SerializeField] private string ability2Binding = "<Keyboard>/e";
+        [SerializeField, Min(0.1f)] private float ability2Cooldown = 8f;
+        [SerializeField, Min(0.1f)] private float ability2Value = 25f;
+
         public string Id => id;
+        public string PrimaryWeaponId => primaryWeaponId;
         public string DisplayName => displayName;
         public float MaxHealth => maxHealth;
         public float WalkSpeed => walkSpeed;
@@ -47,5 +69,13 @@ namespace IrisTrace.Runtime.Characters
         public string SprintBinding => sprintBinding;
         public string FireBinding => fireBinding;
         public string ReloadBinding => reloadBinding;
+        public AbilityKind Ability1Type => ability1Type;
+        public string Ability1Binding => ability1Binding;
+        public float Ability1Cooldown => ability1Cooldown;
+        public float Ability1Value => ability1Value;
+        public AbilityKind Ability2Type => ability2Type;
+        public string Ability2Binding => ability2Binding;
+        public float Ability2Cooldown => ability2Cooldown;
+        public float Ability2Value => ability2Value;
     }
 }

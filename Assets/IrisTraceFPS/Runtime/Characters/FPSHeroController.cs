@@ -6,7 +6,7 @@ namespace IrisTrace.Runtime.Characters
     /// <summary>Minimal FPS movement/controller; consumes an input contract, not a concrete input package.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(CharacterController))]
-    public sealed class FPSHeroController : MonoBehaviour
+    public sealed class FPSHeroController : MonoBehaviour, ICombatTarget
     {
         private const float MouseLookScale = 0.08f;
 
@@ -20,6 +20,8 @@ namespace IrisTrace.Runtime.Characters
         private float verticalVelocity;
         private float cameraPitch;
         private bool cursorLocked;
+
+        public Transform AimPoint => playerCamera != null ? playerCamera.transform : transform;
 
         public void Configure(CharacterDefinition characterDefinition, CharacterController controller, Camera viewCamera, MonoBehaviour inputComponent)
         {
