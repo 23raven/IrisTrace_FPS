@@ -77,11 +77,25 @@ namespace IrisTrace.Runtime.Weapons
         {
             if (definition == null || viewCamera == null || IsReloading)
                 return;
-            if (Time.time < nextShotTime || currentAmmoInMagazine <= 0)
+            if (Time.time < nextShotTime)
                 return;
+
+            // If the magazine is already empty (for example, after loading an old prefab),
+            // start reloading on the next fire attempt rather than silently doing nothing.
+            if (currentAmmoInMagazine <= 0)
+            {
+                if (reserveAmmo > 0)
+                    Reload();
+                return;
+            }
 
             currentAmmoInMagazine--;
             nextShotTime = Time.time + (1f / Mathf.Max(0.1f, definition.ShotsPerSecond));
+
+            // Automatically reload after the last round, when reserve ammo is available.
+            // Start this before the raycast so misses still trigger the reload.
+            if (currentAmmoInMagazine <= 0 && reserveAmmo > 0)
+                Reload();
 
             Vector3 origin = viewCamera.transform.position;
             Vector3 direction = viewCamera.transform.forward;
