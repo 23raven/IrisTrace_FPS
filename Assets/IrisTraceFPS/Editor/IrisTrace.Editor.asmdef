@@ -1,0 +1,25 @@
+{
+  "name": "IrisTrace.Editor",
+  "rootNamespace": "IrisTrace.Editor",
+  "references": [
+    "IrisTrace.Runtime.Core",
+    "IrisTrace.Runtime.Characters",
+    "IrisTrace.Runtime.Input",
+    "IrisTrace.Runtime.Weapons",
+    "IrisTrace.Runtime.Abilities",
+    "IrisTrace.Runtime.Enemies",
+    "IrisTrace.Runtime.UI",
+    "Unity.InputSystem"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

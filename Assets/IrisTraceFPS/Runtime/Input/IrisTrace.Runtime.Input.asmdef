@@ -1,0 +1,17 @@
+{
+  "name": "IrisTrace.Runtime.Input",
+  "rootNamespace": "IrisTrace.Runtime.Input",
+  "references": [
+    "IrisTrace.Runtime.Core",
+    "Unity.InputSystem"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
