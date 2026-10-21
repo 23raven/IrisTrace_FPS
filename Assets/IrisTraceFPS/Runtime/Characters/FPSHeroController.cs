@@ -1,14 +1,20 @@
+using System;
 using UnityEngine;
 using IrisTrace.Runtime.Core;
 
 namespace IrisTrace.Runtime.Characters
 {
-    /// <summary>Modular FPS controller with optional hold-to-crouch and ceiling clearance checks.</summary>
+    /// <summary>
+    /// Modular FPS controller with acceleration, limited air control, smooth crouching,
+    /// ceiling clearance checks, and lifecycle events for optional audio/animation modules.
+    /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(CharacterController))]
     public sealed class FPSHeroController : MonoBehaviour, ICombatTarget
     {
         private const float MouseLookScale = 0.08f;
+        private const float MovementThresholdSqr = 0.0001f;
+        private const float HeightEpsilon = 0.001f;
 
         [SerializeField] private CharacterDefinition definition;
         [SerializeField] private CharacterController characterController;
@@ -18,10 +24,12 @@ namespace IrisTrace.Runtime.Characters
         private readonly Collider[] overlapBuffer = new Collider[32];
         private ICharacterInput input;
         private IWeaponInput weaponInput;
+        private Vector3 horizontalVelocity;
         private float verticalVelocity;
         private float cameraPitch;
         private bool cursorLocked;
         private bool isCrouching;
+        private bool movementEventActive;
         private bool hasStandingPose;
         private float standingHeight;
         private Vector3 standingCenter;
@@ -29,6 +37,21 @@ namespace IrisTrace.Runtime.Characters
 
         public Transform AimPoint => playerCamera != null ? playerCamera.transform : transform;
         public bool IsCrouching => isCrouching;
+        public bool IsMoving => movementEventActive;
+        public Vector3 HorizontalVelocity => horizontalVelocity;
+
+        /// <summary>Raised when the character begins actual horizontal movement.</summary>
+        public event Action MovementStarted;
+        /// <summary>Raised when actual horizontal movement stops.</summary>
+        public event Action MovementStopped;
+        /// <summary>Raised when the character begins crouching.</summary>
+        public event Action CrouchStarted;
+        /// <summary>Raised when the character finishes standing up.</summary>
+        public event Action CrouchEnded;
+        /// <summary>Raised when a grounded jump is accepted.</summary>
+        public event Action Jumped;
+        /// <summary>Raised when the character lands after being airborne.</summary>
+        public event Action Landed;
 
         public void Configure(CharacterDefinition characterDefinition, CharacterController controller, Camera viewCamera, MonoBehaviour inputComponent)
         {
@@ -39,6 +62,8 @@ namespace IrisTrace.Runtime.Characters
             input = inputComponent as ICharacterInput;
             weaponInput = inputComponent as IWeaponInput;
             CaptureStandingPose();
+            horizontalVelocity = Vector3.zero;
+            verticalVelocity = 0f;
         }
 
         private void Awake()
@@ -113,34 +138,81 @@ namespace IrisTrace.Runtime.Characters
 
         private void HandleMovement()
         {
+            float deltaTime = Time.deltaTime;
+            if (deltaTime <= 0f)
+                return;
+
             bool wantsCrouch = definition.CrouchEnabled && input.CrouchHeld;
-
-            // Do not let the player stand up into a ceiling or other blocking collider.
-            // If blocked, remain crouched and retry until the space is clear.
-            if (isCrouching && !wantsCrouch && !CanStandUp())
-                wantsCrouch = true;
-
-            SetCrouching(wantsCrouch);
+            UpdateCrouchTransition(wantsCrouch, deltaTime);
 
             Vector2 inputMove = input.Move;
-            Vector3 direction = new Vector3(inputMove.x, 0f, inputMove.y);
-            if (direction.sqrMagnitude > 1f)
-                direction.Normalize();
+            Vector3 localDirection = new Vector3(inputMove.x, 0f, inputMove.y);
+            if (localDirection.sqrMagnitude > 1f)
+                localDirection.Normalize();
 
-            float speed = isCrouching
+            bool movementRequested = localDirection.sqrMagnitude > MovementThresholdSqr;
+            bool useCrouchSpeed = isCrouching || wantsCrouch;
+            float targetSpeed = useCrouchSpeed
                 ? Mathf.Max(0.1f, definition.CrouchSpeed)
                 : (input.SprintHeld ? definition.SprintSpeed : definition.WalkSpeed);
-            Vector3 velocity = transform.TransformDirection(direction) * speed;
 
-            if (characterController.isGrounded && verticalVelocity < 0f)
+            Vector3 desiredHorizontalVelocity = transform.TransformDirection(localDirection) * targetSpeed;
+            bool groundedBeforeMove = characterController.isGrounded;
+            float airControl = Mathf.Clamp01(definition.AirControl);
+            float acceleration = movementRequested
+                ? Mathf.Max(0.1f, definition.GroundAcceleration)
+                : Mathf.Max(0.1f, definition.GroundDeceleration);
+
+            // In the air, input changes are weaker. With air control = 0, horizontal momentum is preserved.
+            if (!groundedBeforeMove)
+                acceleration *= airControl;
+
+            horizontalVelocity = Vector3.MoveTowards(
+                horizontalVelocity,
+                desiredHorizontalVelocity,
+                acceleration * deltaTime);
+
+            if (groundedBeforeMove && verticalVelocity < 0f)
                 verticalVelocity = -2f;
 
-            if (!isCrouching && characterController.isGrounded && input.JumpPressed)
-                verticalVelocity = Mathf.Sqrt(definition.JumpHeight * -2f * Physics.gravity.y);
+            if (!isCrouching && groundedBeforeMove && input.JumpPressed)
+            {
+                float gravityMagnitude = Mathf.Max(0.01f, -Physics.gravity.y);
+                verticalVelocity = Mathf.Sqrt(Mathf.Max(0.1f, definition.JumpHeight) * 2f * gravityMagnitude);
+                Jumped?.Invoke();
+            }
 
-            verticalVelocity += Physics.gravity.y * Time.deltaTime;
-            velocity.y = verticalVelocity;
-            characterController.Move(velocity * Time.deltaTime);
+            verticalVelocity += Physics.gravity.y * deltaTime;
+            Vector3 movement = horizontalVelocity;
+            movement.y = verticalVelocity;
+
+            Vector3 previousPosition = transform.position;
+            characterController.Move(movement * deltaTime);
+
+            bool groundedAfterMove = characterController.isGrounded;
+            if (!groundedBeforeMove && groundedAfterMove)
+            {
+                verticalVelocity = -2f;
+                Landed?.Invoke();
+            }
+
+            Vector3 actualDelta = transform.position - previousPosition;
+            actualDelta.y = 0f;
+            UpdateMovementEvents(actualDelta.sqrMagnitude > MovementThresholdSqr, movementRequested);
+        }
+
+        private void UpdateMovementEvents(bool movedThisFrame, bool movementRequested)
+        {
+            // Do not emit MovementStarted while the controller is being pushed solely by residual velocity.
+            bool shouldBeActive = movedThisFrame && (movementRequested || movementEventActive);
+            if (shouldBeActive == movementEventActive)
+                return;
+
+            movementEventActive = shouldBeActive;
+            if (movementEventActive)
+                MovementStarted?.Invoke();
+            else
+                MovementStopped?.Invoke();
         }
 
         private void CaptureStandingPose()
@@ -156,35 +228,57 @@ namespace IrisTrace.Runtime.Characters
             isCrouching = false;
         }
 
-        private void SetCrouching(bool crouch)
+        private void UpdateCrouchTransition(bool wantsCrouch, float deltaTime)
         {
-            if (!hasStandingPose || characterController == null || isCrouching == crouch)
+            if (!hasStandingPose || characterController == null || !characterController.enabled)
                 return;
 
-            isCrouching = crouch;
-            float targetHeight = standingHeight;
-            if (crouch && definition != null && definition.CrouchEnabled)
-            {
-                float minimumHeight = characterController.radius * 2f + 0.02f;
-                targetHeight = Mathf.Clamp(definition.CrouchedHeight, minimumHeight, standingHeight - 0.05f);
-            }
+            float minimumHeight = characterController.radius * 2f + 0.02f;
+            float crouchedHeight = Mathf.Clamp(definition.CrouchedHeight, minimumHeight, standingHeight - 0.05f);
+            float targetHeight = wantsCrouch ? crouchedHeight : standingHeight;
+            float currentHeight = characterController.height;
+            float transitionDistance = Mathf.Max(0.05f, standingHeight - crouchedHeight);
+            float duration = Mathf.Max(0.05f, definition.CrouchTransitionDuration);
+            float transitionSpeed = transitionDistance / duration;
+            float nextHeight = Mathf.MoveTowards(currentHeight, targetHeight, transitionSpeed * deltaTime);
 
-            // Move the capsule center with the height change so its feet remain at the same world height.
-            characterController.height = targetHeight;
+            // Shrinking is always safe. Growing is allowed only after checking the complete proposed capsule.
+            if (nextHeight > currentHeight + HeightEpsilon && !CanOccupyHeight(nextHeight))
+                nextHeight = currentHeight;
+
+            if (Mathf.Abs(nextHeight - currentHeight) > HeightEpsilon)
+                ApplyCharacterHeight(nextHeight);
+
+            bool crouchingNow = characterController.height < standingHeight - 0.01f;
+            if (crouchingNow == isCrouching)
+                return;
+
+            isCrouching = crouchingNow;
+            if (isCrouching)
+                CrouchStarted?.Invoke();
+            else
+                CrouchEnded?.Invoke();
+        }
+
+        private void ApplyCharacterHeight(float height)
+        {
+            float clampedHeight = Mathf.Clamp(height, characterController.radius * 2f + 0.02f, standingHeight);
+            characterController.height = clampedHeight;
+
+            // Keep the capsule's feet at the same world height as it transitions.
             Vector3 center = standingCenter;
-            center.y -= (standingHeight - targetHeight) * 0.5f;
+            center.y -= (standingHeight - clampedHeight) * 0.5f;
             characterController.center = center;
 
             if (playerCamera != null)
             {
                 Vector3 cameraPosition = standingCameraLocalPosition;
-                // Keep the camera's distance from the top of the standing capsule.
-                cameraPosition.y -= standingHeight - targetHeight;
+                cameraPosition.y -= standingHeight - clampedHeight;
                 playerCamera.transform.localPosition = cameraPosition;
             }
         }
 
-        private bool CanStandUp()
+        private bool CanOccupyHeight(float targetHeight)
         {
             if (characterController == null || !characterController.enabled || !hasStandingPose)
                 return true;
@@ -192,22 +286,22 @@ namespace IrisTrace.Runtime.Characters
             Vector3 scale = transform.lossyScale;
             float verticalScale = Mathf.Abs(scale.y);
             float horizontalScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
-            float worldHeight = standingHeight * verticalScale;
+            float worldHeight = targetHeight * verticalScale;
             float worldRadius = characterController.radius * horizontalScale;
             float worldSkin = characterController.skinWidth * horizontalScale;
             float radius = Mathf.Max(0.01f, worldRadius - worldSkin * 0.5f);
             float halfHeight = Mathf.Max(worldHeight * 0.5f, radius);
 
+            // Use the standing center as the reference so the feet remain anchored during resizing.
             Vector3 worldCenter = transform.TransformPoint(standingCenter);
             Vector3 up = transform.up;
-            // Inset the test volume slightly so the floor contact itself does not block standing.
             float verticalInset = Mathf.Max(0.01f, worldSkin * 0.25f);
             Vector3 lowerSphere = worldCenter + up * (-halfHeight + radius + verticalInset);
             Vector3 upperSphere = worldCenter + up * (halfHeight - radius - verticalInset);
-            int count = Physics.OverlapCapsuleNonAlloc(lowerSphere, upperSphere, radius, overlapBuffer,
-                Physics.AllLayers, QueryTriggerInteraction.Ignore);
+            int count = Physics.OverlapCapsuleNonAlloc(
+                lowerSphere, upperSphere, radius, overlapBuffer, Physics.AllLayers, QueryTriggerInteraction.Ignore);
 
-            // If the buffer fills, fail closed rather than risk standing through geometry.
+            // Fail closed if the buffer fills rather than letting the character expand into geometry.
             if (count >= overlapBuffer.Length)
                 return false;
 
@@ -245,6 +339,12 @@ namespace IrisTrace.Runtime.Characters
         {
             if (Application.isPlaying)
                 UnlockCursor();
+
+            if (movementEventActive)
+            {
+                movementEventActive = false;
+                MovementStopped?.Invoke();
+            }
         }
     }
 }

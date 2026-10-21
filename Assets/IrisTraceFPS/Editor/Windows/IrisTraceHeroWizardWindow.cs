@@ -19,9 +19,13 @@ namespace IrisTrace.Editor.Windows
         private FloatField walkSpeedField;
         private FloatField sprintSpeedField;
         private FloatField jumpHeightField;
+        private FloatField groundAccelerationField;
+        private FloatField groundDecelerationField;
+        private FloatField airControlField;
         private Toggle crouchEnabledField;
         private FloatField crouchSpeedField;
         private FloatField crouchedHeightField;
+        private FloatField crouchTransitionDurationField;
         private FloatField sensitivityField;
         private FloatField fieldOfViewField;
         private FloatField weaponDamageField;
@@ -182,26 +186,38 @@ namespace IrisTrace.Editor.Windows
             walkSpeedField = new FloatField("Walk Speed") { value = 5f };
             sprintSpeedField = new FloatField("Sprint Speed") { value = 8f };
             jumpHeightField = new FloatField("Jump Height") { value = 1.5f };
+            groundAccelerationField = new FloatField("Ground Acceleration") { value = 18f };
+            groundDecelerationField = new FloatField("Ground Deceleration") { value = 22f };
+            airControlField = new FloatField("Air Control (0–1)") { value = 0.35f };
             crouchEnabledField = new Toggle("Enable Crouch") { value = true };
             crouchSpeedField = new FloatField("Crouch Speed") { value = 2.5f };
             crouchedHeightField = new FloatField("Crouched Height") { value = 1.1f };
+            crouchTransitionDurationField = new FloatField("Crouch Transition (s)") { value = 0.18f };
             sensitivityField = new FloatField("Mouse Sensitivity") { value = 1f };
             fieldOfViewField = new FloatField("Camera Field of View") { value = 90f };
 
             StyleField(walkSpeedField);
             StyleField(sprintSpeedField);
             StyleField(jumpHeightField);
+            StyleField(groundAccelerationField);
+            StyleField(groundDecelerationField);
+            StyleField(airControlField);
             StyleField(crouchEnabledField);
             StyleField(crouchSpeedField);
             StyleField(crouchedHeightField);
+            StyleField(crouchTransitionDurationField);
             StyleField(sensitivityField);
             StyleField(fieldOfViewField);
             panel.Add(walkSpeedField);
             panel.Add(sprintSpeedField);
             panel.Add(jumpHeightField);
+            panel.Add(groundAccelerationField);
+            panel.Add(groundDecelerationField);
+            panel.Add(airControlField);
             panel.Add(crouchEnabledField);
             panel.Add(crouchSpeedField);
             panel.Add(crouchedHeightField);
+            panel.Add(crouchTransitionDurationField);
             panel.Add(sensitivityField);
             panel.Add(fieldOfViewField);
             return panel;
@@ -480,9 +496,13 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "walkSpeed", walkSpeedField.value);
             SetFloat(serialized, "sprintSpeed", sprintSpeedField.value);
             SetFloat(serialized, "jumpHeight", jumpHeightField.value);
+            SetFloat(serialized, "groundAcceleration", groundAccelerationField.value);
+            SetFloat(serialized, "groundDeceleration", groundDecelerationField.value);
+            SetFloat(serialized, "airControl", airControlField.value);
             SetBool(serialized, "crouchEnabled", crouchEnabledField.value);
             SetFloat(serialized, "crouchSpeed", crouchSpeedField.value);
             SetFloat(serialized, "crouchedHeight", crouchedHeightField.value);
+            SetFloat(serialized, "crouchTransitionDuration", crouchTransitionDurationField.value);
             SetFloat(serialized, "mouseSensitivity", sensitivityField.value);
             SetFloat(serialized, "cameraFieldOfView", fieldOfViewField.value);
             SetString(serialized, "moveForwardBinding", forwardKeyField.Value);
@@ -553,9 +573,17 @@ namespace IrisTrace.Editor.Windows
             }
 
             if (maxHealthField.value <= 0f || walkSpeedField.value <= 0f || sprintSpeedField.value <= 0f ||
-                jumpHeightField.value <= 0f || sensitivityField.value <= 0f)
+                jumpHeightField.value <= 0f || groundAccelerationField.value <= 0f ||
+                groundDecelerationField.value <= 0f || crouchTransitionDurationField.value < 0.05f ||
+                sensitivityField.value <= 0f)
             {
-                EditorUtility.DisplayDialog("Invalid Values", "Health, movement speed, jump height and sensitivity must be greater than zero.", "OK");
+                EditorUtility.DisplayDialog("Invalid Values", "Health, movement speed, jump height, acceleration, deceleration, crouch transition and sensitivity must be greater than zero.", "OK");
+                return false;
+            }
+
+            if (airControlField.value < 0f || airControlField.value > 1f)
+            {
+                EditorUtility.DisplayDialog("Invalid Air Control", "Air Control must be between 0 and 1.", "OK");
                 return false;
             }
 

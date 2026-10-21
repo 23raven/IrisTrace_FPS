@@ -26,9 +26,13 @@ namespace IrisTrace.Runtime.Characters
         [SerializeField, Min(0.1f)] private float walkSpeed = 5f;
         [SerializeField, Min(0.1f)] private float sprintSpeed = 8f;
         [SerializeField, Min(0.1f)] private float jumpHeight = 1.5f;
+        [SerializeField, Min(0.1f)] private float groundAcceleration = 18f;
+        [SerializeField, Min(0.1f)] private float groundDeceleration = 22f;
+        [SerializeField, Range(0f, 1f)] private float airControl = 0.35f;
         [SerializeField] private bool crouchEnabled = true;
         [SerializeField, Min(0.1f)] private float crouchSpeed = 2.5f;
         [SerializeField, Min(0.65f)] private float crouchedHeight = 1.1f;
+        [SerializeField, Min(0.05f)] private float crouchTransitionDuration = 0.18f;
 
         [Header("Camera")]
         [SerializeField, Min(0.1f)] private float mouseSensitivity = 1f;
@@ -65,9 +69,13 @@ namespace IrisTrace.Runtime.Characters
         public float WalkSpeed => walkSpeed;
         public float SprintSpeed => sprintSpeed;
         public float JumpHeight => jumpHeight;
+        public float GroundAcceleration => groundAcceleration;
+        public float GroundDeceleration => groundDeceleration;
+        public float AirControl => airControl;
         public bool CrouchEnabled => crouchEnabled;
         public float CrouchSpeed => crouchSpeed;
         public float CrouchedHeight => crouchedHeight;
+        public float CrouchTransitionDuration => crouchTransitionDuration;
         public float MouseSensitivity => mouseSensitivity;
         public float CameraFieldOfView => cameraFieldOfView;
         public string MoveForwardBinding => moveForwardBinding;
