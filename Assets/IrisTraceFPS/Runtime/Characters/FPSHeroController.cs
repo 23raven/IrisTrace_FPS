@@ -158,6 +158,8 @@ namespace IrisTrace.Runtime.Characters
 
             Vector3 desiredHorizontalVelocity = transform.TransformDirection(localDirection) * targetSpeed;
             bool groundedBeforeMove = characterController.isGrounded;
+            float gravityMagnitude = Mathf.Max(0.1f,
+                Mathf.Abs(Physics.gravity.y) * Mathf.Max(0.1f, definition.GravityMultiplier));
             float airControl = Mathf.Clamp01(definition.AirControl);
             float acceleration = movementRequested
                 ? Mathf.Max(0.1f, definition.GroundAcceleration)
@@ -177,12 +179,18 @@ namespace IrisTrace.Runtime.Characters
 
             if (!isCrouching && groundedBeforeMove && input.JumpPressed)
             {
-                float gravityMagnitude = Mathf.Max(0.01f, -Physics.gravity.y);
+                // Calculate take-off speed from the same configured gravity used during ascent.
                 verticalVelocity = Mathf.Sqrt(Mathf.Max(0.1f, definition.JumpHeight) * 2f * gravityMagnitude);
                 Jumped?.Invoke();
             }
 
-            verticalVelocity += Physics.gravity.y * deltaTime;
+            // CharacterController does not use Rigidbody gravity. Apply custom gravity explicitly.
+            // A stronger multiplier while descending produces a quicker, less floaty fall.
+            float fallMultiplier = verticalVelocity < 0f
+                ? Mathf.Max(1f, definition.FallGravityMultiplier)
+                : 1f;
+            verticalVelocity -= gravityMagnitude * fallMultiplier * deltaTime;
+            verticalVelocity = Mathf.Max(verticalVelocity, -Mathf.Max(5f, definition.MaximumFallSpeed));
             Vector3 movement = horizontalVelocity;
             movement.y = verticalVelocity;
 

@@ -26,6 +26,9 @@ namespace IrisTrace.Runtime.Characters
         [SerializeField, Min(0.1f)] private float walkSpeed = 5f;
         [SerializeField, Min(0.1f)] private float sprintSpeed = 8f;
         [SerializeField, Min(0.1f)] private float jumpHeight = 1.5f;
+        [SerializeField, Range(0.1f, 5f)] private float gravityMultiplier = 1.8f;
+        [SerializeField, Range(1f, 4f)] private float fallGravityMultiplier = 2.2f;
+        [SerializeField, Range(5f, 100f)] private float maximumFallSpeed = 35f;
         [SerializeField, Min(0.1f)] private float groundAcceleration = 18f;
         [SerializeField, Min(0.1f)] private float groundDeceleration = 22f;
         [SerializeField, Range(0f, 1f)] private float airControl = 0.35f;
@@ -69,6 +72,10 @@ namespace IrisTrace.Runtime.Characters
         public float WalkSpeed => walkSpeed;
         public float SprintSpeed => sprintSpeed;
         public float JumpHeight => jumpHeight;
+        // Fallbacks keep characters saved before these fields existed playable.
+        public float GravityMultiplier => gravityMultiplier > 0f ? gravityMultiplier : 1.8f;
+        public float FallGravityMultiplier => fallGravityMultiplier > 0f ? fallGravityMultiplier : 2.2f;
+        public float MaximumFallSpeed => maximumFallSpeed > 0f ? maximumFallSpeed : 35f;
         public float GroundAcceleration => groundAcceleration;
         public float GroundDeceleration => groundDeceleration;
         public float AirControl => airControl;

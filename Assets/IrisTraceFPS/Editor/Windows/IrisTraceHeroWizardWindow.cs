@@ -19,6 +19,9 @@ namespace IrisTrace.Editor.Windows
         private FloatField walkSpeedField;
         private FloatField sprintSpeedField;
         private FloatField jumpHeightField;
+        private FloatField gravityMultiplierField;
+        private FloatField fallGravityMultiplierField;
+        private FloatField maximumFallSpeedField;
         private FloatField groundAccelerationField;
         private FloatField groundDecelerationField;
         private FloatField airControlField;
@@ -186,6 +189,9 @@ namespace IrisTrace.Editor.Windows
             walkSpeedField = new FloatField("Walk Speed") { value = 5f };
             sprintSpeedField = new FloatField("Sprint Speed") { value = 8f };
             jumpHeightField = new FloatField("Jump Height") { value = 1.5f };
+            gravityMultiplierField = new FloatField("Gravity Multiplier (1 = project gravity)") { value = 1.8f };
+            fallGravityMultiplierField = new FloatField("Fall Gravity Multiplier") { value = 2.2f };
+            maximumFallSpeedField = new FloatField("Maximum Fall Speed") { value = 35f };
             groundAccelerationField = new FloatField("Ground Acceleration") { value = 18f };
             groundDecelerationField = new FloatField("Ground Deceleration") { value = 22f };
             airControlField = new FloatField("Air Control (0–1)") { value = 0.35f };
@@ -199,6 +205,9 @@ namespace IrisTrace.Editor.Windows
             StyleField(walkSpeedField);
             StyleField(sprintSpeedField);
             StyleField(jumpHeightField);
+            StyleField(gravityMultiplierField);
+            StyleField(fallGravityMultiplierField);
+            StyleField(maximumFallSpeedField);
             StyleField(groundAccelerationField);
             StyleField(groundDecelerationField);
             StyleField(airControlField);
@@ -211,6 +220,9 @@ namespace IrisTrace.Editor.Windows
             panel.Add(walkSpeedField);
             panel.Add(sprintSpeedField);
             panel.Add(jumpHeightField);
+            panel.Add(gravityMultiplierField);
+            panel.Add(fallGravityMultiplierField);
+            panel.Add(maximumFallSpeedField);
             panel.Add(groundAccelerationField);
             panel.Add(groundDecelerationField);
             panel.Add(airControlField);
@@ -496,6 +508,9 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "walkSpeed", walkSpeedField.value);
             SetFloat(serialized, "sprintSpeed", sprintSpeedField.value);
             SetFloat(serialized, "jumpHeight", jumpHeightField.value);
+            SetFloat(serialized, "gravityMultiplier", gravityMultiplierField.value);
+            SetFloat(serialized, "fallGravityMultiplier", fallGravityMultiplierField.value);
+            SetFloat(serialized, "maximumFallSpeed", maximumFallSpeedField.value);
             SetFloat(serialized, "groundAcceleration", groundAccelerationField.value);
             SetFloat(serialized, "groundDeceleration", groundDecelerationField.value);
             SetFloat(serialized, "airControl", airControlField.value);
@@ -578,6 +593,15 @@ namespace IrisTrace.Editor.Windows
                 sensitivityField.value <= 0f)
             {
                 EditorUtility.DisplayDialog("Invalid Values", "Health, movement speed, jump height, acceleration, deceleration, crouch transition and sensitivity must be greater than zero.", "OK");
+                return false;
+            }
+
+            if (gravityMultiplierField.value < 0.1f || gravityMultiplierField.value > 5f ||
+                fallGravityMultiplierField.value < 1f || fallGravityMultiplierField.value > 4f ||
+                maximumFallSpeedField.value < 5f || maximumFallSpeedField.value > 100f)
+            {
+                EditorUtility.DisplayDialog("Invalid Gravity Settings",
+                    "Gravity Multiplier must be 0.1–5, Fall Gravity Multiplier 1–4, and Maximum Fall Speed 5–100.", "OK");
                 return false;
             }
 
