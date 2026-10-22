@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 using IrisTrace.Editor.UI;
@@ -30,6 +31,8 @@ namespace IrisTrace.Editor.Windows
         private FloatField reloadDurationField;
         private FloatField rangeField;
         private Toggle automaticField;
+        private ObjectField fireClipField;
+        private ObjectField reloadClipField;
 
         [MenuItem("Window/IrisTrace FPS/Weapon Library")]
         public static void Open()
@@ -206,6 +209,8 @@ namespace IrisTrace.Editor.Windows
             reloadDurationField = new FloatField("Reload Duration (s)") { value = selected.ReloadDuration };
             rangeField = new FloatField("Range") { value = selected.Range };
             automaticField = new Toggle("Automatic Fire") { value = selected.Automatic };
+            fireClipField = new ObjectField("Fire Sound") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.FireClip };
+            reloadClipField = new ObjectField("Reload Sound") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.ReloadClip };
 
             AddField(panel, nameField);
             AddField(panel, damageField);
@@ -215,6 +220,8 @@ namespace IrisTrace.Editor.Windows
             AddField(panel, reloadDurationField);
             AddField(panel, rangeField);
             AddField(panel, automaticField);
+            AddField(panel, fireClipField);
+            AddField(panel, reloadClipField);
 
             VisualElement actions = new VisualElement();
             actions.style.flexDirection = FlexDirection.Row;
@@ -294,6 +301,10 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "range", Mathf.Max(1f, rangeField.value));
             SerializedProperty automatic = serialized.FindProperty("automatic");
             if (automatic != null) automatic.boolValue = automaticField.value;
+            SerializedProperty fireClip = serialized.FindProperty("fireClip");
+            if (fireClip != null) fireClip.objectReferenceValue = fireClipField.value;
+            SerializedProperty reloadClip = serialized.FindProperty("reloadClip");
+            if (reloadClip != null) reloadClip.objectReferenceValue = reloadClipField.value;
             serialized.ApplyModifiedProperties();
 
             string assetPath = AssetDatabase.GetAssetPath(selected);

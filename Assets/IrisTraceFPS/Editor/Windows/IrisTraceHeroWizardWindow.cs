@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -38,6 +39,15 @@ namespace IrisTrace.Editor.Windows
         private FloatField reloadDurationField;
         private FloatField weaponRangeField;
         private Toggle automaticWeaponField;
+        private ObjectField walkFootstepSoundField;
+        private ObjectField sprintFootstepSoundField;
+        private ObjectField crouchFootstepSoundField;
+        private ObjectField jumpSoundField;
+        private ObjectField landingSoundField;
+        private ObjectField crouchStartSoundField;
+        private ObjectField crouchEndSoundField;
+        private ObjectField weaponFireSoundField;
+        private ObjectField weaponReloadSoundField;
 
         private EnumField ability1TypeField;
         private FloatField ability1CooldownField;
@@ -102,6 +112,8 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildMovementPanel());
             content.Add(BuildSection("DEFAULT WEAPON", "Configure the generated hitscan weapon."));
             content.Add(BuildWeaponPanel());
+            content.Add(BuildSection("AUDIO (OPTIONAL)", "Assign AudioClip assets. Empty fields are safely ignored."));
+            content.Add(BuildAudioPanel());
             content.Add(BuildSection("ABILITIES", "Choose up to two built-in skills. Custom scripts can implement the same ability contract."));
             content.Add(BuildAbilitiesPanel());
             content.Add(BuildSection("DEFAULT CONTROLS", "Click a binding, then press a key or mouse button. Esc cancels."));
@@ -261,6 +273,56 @@ namespace IrisTrace.Editor.Windows
             panel.Add(weaponRangeField);
             panel.Add(automaticWeaponField);
             return panel;
+        }
+
+        private VisualElement BuildAudioPanel()
+        {
+            VisualElement panel = BuildPanel();
+            Label characterSounds = new Label("CHARACTER SOUNDS");
+            characterSounds.style.color = IrisTraceTheme.Accent;
+            characterSounds.style.fontSize = 10f;
+            characterSounds.style.unityFontStyleAndWeight = FontStyle.Bold;
+            characterSounds.style.marginBottom = 7f;
+            panel.Add(characterSounds);
+
+            walkFootstepSoundField = AudioField("Walk Footstep");
+            sprintFootstepSoundField = AudioField("Sprint Footstep");
+            crouchFootstepSoundField = AudioField("Crouch Footstep");
+            jumpSoundField = AudioField("Jump");
+            landingSoundField = AudioField("Landing");
+            crouchStartSoundField = AudioField("Crouch Start");
+            crouchEndSoundField = AudioField("Crouch End");
+            panel.Add(walkFootstepSoundField);
+            panel.Add(sprintFootstepSoundField);
+            panel.Add(crouchFootstepSoundField);
+            panel.Add(jumpSoundField);
+            panel.Add(landingSoundField);
+            panel.Add(crouchStartSoundField);
+            panel.Add(crouchEndSoundField);
+
+            Label weaponSounds = new Label("WEAPON SOUNDS");
+            weaponSounds.style.color = IrisTraceTheme.Accent;
+            weaponSounds.style.fontSize = 10f;
+            weaponSounds.style.unityFontStyleAndWeight = FontStyle.Bold;
+            weaponSounds.style.marginTop = 8f;
+            weaponSounds.style.marginBottom = 7f;
+            panel.Add(weaponSounds);
+            weaponFireSoundField = AudioField("Fire");
+            weaponReloadSoundField = AudioField("Reload");
+            panel.Add(weaponFireSoundField);
+            panel.Add(weaponReloadSoundField);
+            return panel;
+        }
+
+        private static ObjectField AudioField(string label)
+        {
+            ObjectField field = new ObjectField(label)
+            {
+                objectType = typeof(AudioClip),
+                allowSceneObjects = false
+            };
+            StyleField(field);
+            return field;
         }
 
         private VisualElement BuildAbilitiesPanel()
@@ -520,6 +582,13 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "crouchTransitionDuration", crouchTransitionDurationField.value);
             SetFloat(serialized, "mouseSensitivity", sensitivityField.value);
             SetFloat(serialized, "cameraFieldOfView", fieldOfViewField.value);
+            SetObjectReference(serialized, "walkFootstepClip", walkFootstepSoundField.value);
+            SetObjectReference(serialized, "sprintFootstepClip", sprintFootstepSoundField.value);
+            SetObjectReference(serialized, "crouchFootstepClip", crouchFootstepSoundField.value);
+            SetObjectReference(serialized, "jumpClip", jumpSoundField.value);
+            SetObjectReference(serialized, "landingClip", landingSoundField.value);
+            SetObjectReference(serialized, "crouchStartClip", crouchStartSoundField.value);
+            SetObjectReference(serialized, "crouchEndClip", crouchEndSoundField.value);
             SetString(serialized, "moveForwardBinding", forwardKeyField.Value);
             SetString(serialized, "moveBackwardBinding", backwardKeyField.Value);
             SetString(serialized, "moveLeftBinding", leftKeyField.Value);
@@ -555,6 +624,8 @@ namespace IrisTrace.Editor.Windows
             SetFloat(weaponSerialized, "reloadDuration", reloadDurationField.value);
             SetFloat(weaponSerialized, "range", weaponRangeField.value);
             SetBool(weaponSerialized, "automatic", automaticWeaponField.value);
+            SetObjectReference(weaponSerialized, "fireClip", weaponFireSoundField.value);
+            SetObjectReference(weaponSerialized, "reloadClip", weaponReloadSoundField.value);
             weaponSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             string weaponPath = AssetDatabase.GenerateUniqueAssetPath($"{weaponFolder}/{safeName}_PrimaryWeapon.asset");
@@ -798,6 +869,13 @@ namespace IrisTrace.Editor.Windows
             SerializedProperty property = serialized.FindProperty(propertyName);
             if (property != null)
                 property.intValue = value;
+        }
+
+        private static void SetObjectReference(SerializedObject serialized, string propertyName, UnityEngine.Object value)
+        {
+            SerializedProperty property = serialized.FindProperty(propertyName);
+            if (property != null)
+                property.objectReferenceValue = value;
         }
 
         private static void SetBool(SerializedObject serialized, string propertyName, bool value)

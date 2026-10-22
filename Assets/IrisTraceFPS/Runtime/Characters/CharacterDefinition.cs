@@ -37,6 +37,18 @@ namespace IrisTrace.Runtime.Characters
         [SerializeField, Min(0.65f)] private float crouchedHeight = 1.1f;
         [SerializeField, Min(0.05f)] private float crouchTransitionDuration = 0.18f;
 
+        [Header("Optional Audio")]
+        [SerializeField] private AudioClip walkFootstepClip;
+        [SerializeField] private AudioClip sprintFootstepClip;
+        [SerializeField] private AudioClip crouchFootstepClip;
+        [SerializeField] private AudioClip jumpClip;
+        [SerializeField] private AudioClip landingClip;
+        [SerializeField] private AudioClip crouchStartClip;
+        [SerializeField] private AudioClip crouchEndClip;
+        [SerializeField, Min(0.1f)] private float walkFootstepInterval = 0.42f;
+        [SerializeField, Min(0.1f)] private float sprintFootstepInterval = 0.29f;
+        [SerializeField, Min(0.1f)] private float crouchFootstepInterval = 0.62f;
+
         [Header("Camera")]
         [SerializeField, Min(0.1f)] private float mouseSensitivity = 1f;
         [SerializeField, Range(60f, 120f)] private float cameraFieldOfView = 90f;
@@ -68,6 +80,16 @@ namespace IrisTrace.Runtime.Characters
         public string PrimaryWeaponId => primaryWeaponId;
         public string DisplayName => displayName;
         public Sprite PortraitIcon => portraitIcon;
+        public AudioClip WalkFootstepClip => walkFootstepClip;
+        public AudioClip SprintFootstepClip => sprintFootstepClip;
+        public AudioClip CrouchFootstepClip => crouchFootstepClip;
+        public AudioClip JumpClip => jumpClip;
+        public AudioClip LandingClip => landingClip;
+        public AudioClip CrouchStartClip => crouchStartClip;
+        public AudioClip CrouchEndClip => crouchEndClip;
+        public float WalkFootstepInterval => walkFootstepInterval > 0.1f ? walkFootstepInterval : 0.42f;
+        public float SprintFootstepInterval => sprintFootstepInterval > 0.1f ? sprintFootstepInterval : 0.29f;
+        public float CrouchFootstepInterval => crouchFootstepInterval > 0.1f ? crouchFootstepInterval : 0.62f;
         public float MaxHealth => maxHealth;
         public float WalkSpeed => walkSpeed;
         public float SprintSpeed => sprintSpeed;

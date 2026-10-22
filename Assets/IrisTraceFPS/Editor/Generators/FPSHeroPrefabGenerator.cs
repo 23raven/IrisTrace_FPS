@@ -8,6 +8,7 @@ using IrisTrace.Runtime.Weapons;
 using IrisTrace.Runtime.Input;
 using IrisTrace.Runtime.Abilities;
 using IrisTrace.Runtime.UI;
+using IrisTrace.Runtime.Audio;
 
 namespace IrisTrace.Editor.Generators
 {
@@ -61,8 +62,14 @@ namespace IrisTrace.Editor.Generators
                 weaponMount.transform.localPosition = new Vector3(0.22f, -0.2f, 0.45f);
                 weaponMount.transform.localRotation = Quaternion.identity;
 
+                AudioSource weaponAudioSource = weaponMount.AddComponent<AudioSource>();
+                weaponAudioSource.playOnAwake = false;
+                weaponAudioSource.loop = false;
+                weaponAudioSource.spatialBlend = 0f;
                 HitscanWeapon weapon = weaponMount.AddComponent<HitscanWeapon>();
                 weapon.Configure(weaponDefinition, playerCamera, buildRoot.transform);
+                WeaponAudioController weaponAudio = weaponMount.AddComponent<WeaponAudioController>();
+                weaponAudio.Configure(weaponDefinition, weapon, weaponAudioSource);
 
                 IrisTraceInputReader inputReader = buildRoot.AddComponent<IrisTraceInputReader>();
                 inputReader.Configure(
@@ -93,6 +100,13 @@ namespace IrisTrace.Editor.Generators
 
                 FPSHeroController heroController = buildRoot.AddComponent<FPSHeroController>();
                 heroController.Configure(definition, characterController, playerCamera, inputReader);
+
+                AudioSource characterAudioSource = buildRoot.AddComponent<AudioSource>();
+                characterAudioSource.playOnAwake = false;
+                characterAudioSource.loop = false;
+                characterAudioSource.spatialBlend = 0f;
+                CharacterAudioController characterAudio = buildRoot.AddComponent<CharacterAudioController>();
+                characterAudio.Configure(definition, heroController, characterAudioSource);
 
                 prefabAsset = PrefabUtility.SaveAsPrefabAsset(buildRoot, prefabPath, out bool success);
                 if (!success || prefabAsset == null)

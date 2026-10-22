@@ -1,0 +1,17 @@
+{
+  "name": "IrisTrace.Runtime.Audio",
+  "rootNamespace": "IrisTrace.Runtime.Audio",
+  "references": [
+    "IrisTrace.Runtime.Characters",
+    "IrisTrace.Runtime.Weapons"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

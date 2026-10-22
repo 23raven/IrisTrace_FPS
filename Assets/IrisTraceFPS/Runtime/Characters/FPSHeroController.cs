@@ -36,8 +36,11 @@ namespace IrisTrace.Runtime.Characters
         private Vector3 standingCameraLocalPosition;
 
         public Transform AimPoint => playerCamera != null ? playerCamera.transform : transform;
+        public CharacterDefinition Definition => definition;
         public bool IsCrouching => isCrouching;
         public bool IsMoving => movementEventActive;
+        public bool IsGrounded => characterController != null && characterController.isGrounded;
+        public bool IsSprinting => !isCrouching && input != null && input.SprintHeld;
         public Vector3 HorizontalVelocity => horizontalVelocity;
 
         /// <summary>Raised when the character begins actual horizontal movement.</summary>

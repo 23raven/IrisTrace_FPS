@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using IrisTrace.Runtime.Core;
@@ -23,6 +24,11 @@ namespace IrisTrace.Runtime.Weapons
         public int ReserveAmmo => reserveAmmo;
         public bool IsReloading => reloadRoutine != null;
         public string WeaponDisplayName => definition != null ? definition.DisplayName : "WEAPON";
+
+        /// <summary>Raised after ammo is consumed for a valid shot attempt.</summary>
+        public event Action ShotFired;
+        public event Action ReloadStarted;
+        public event Action ReloadCompleted;
 
         public void Configure(WeaponDefinition weaponDefinition, Camera cameraForShots, Transform weaponOwnerRoot = null)
         {
@@ -70,6 +76,7 @@ namespace IrisTrace.Runtime.Weapons
                 return;
 
             isFiring = false;
+            ReloadStarted?.Invoke();
             reloadRoutine = StartCoroutine(ReloadRoutine());
         }
 
@@ -91,6 +98,7 @@ namespace IrisTrace.Runtime.Weapons
 
             currentAmmoInMagazine--;
             nextShotTime = Time.time + (1f / Mathf.Max(0.1f, definition.ShotsPerSecond));
+            ShotFired?.Invoke();
 
             // Automatically reload after the last round, when reserve ammo is available.
             // Start this before the raycast so misses still trigger the reload.
@@ -148,6 +156,7 @@ namespace IrisTrace.Runtime.Weapons
             currentAmmoInMagazine += ammoToLoad;
             reserveAmmo -= ammoToLoad;
             reloadRoutine = null;
+            ReloadCompleted?.Invoke();
         }
 
         private void OnDisable()

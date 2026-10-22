@@ -15,6 +15,9 @@ namespace IrisTrace.Runtime.Weapons
         [SerializeField, Min(0.1f)] private float reloadDuration = 1.4f;
         [SerializeField, Min(1f)] private float range = 100f;
         [SerializeField] private bool automatic = true;
+        [Header("Optional Audio")]
+        [SerializeField] private AudioClip fireClip;
+        [SerializeField] private AudioClip reloadClip;
 
         public string Id => id;
         public string DisplayName => displayName;
@@ -25,5 +28,7 @@ namespace IrisTrace.Runtime.Weapons
         public float ReloadDuration => reloadDuration;
         public float Range => range;
         public bool Automatic => automatic;
+        public AudioClip FireClip => fireClip;
+        public AudioClip ReloadClip => reloadClip;
     }
 }

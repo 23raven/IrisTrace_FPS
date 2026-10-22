@@ -9,7 +9,8 @@
     "IrisTrace.Runtime.Abilities",
     "IrisTrace.Runtime.Enemies",
     "IrisTrace.Runtime.UI",
-    "Unity.InputSystem"
+    "Unity.InputSystem",
+    "IrisTrace.Runtime.Audio"
   ],
   "includePlatforms": [
     "Editor"
