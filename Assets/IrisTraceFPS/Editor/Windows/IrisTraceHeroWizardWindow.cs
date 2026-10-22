@@ -38,7 +38,7 @@ namespace IrisTrace.Editor.Windows
         private IntegerField reserveAmmoField;
         private FloatField reloadDurationField;
         private FloatField weaponRangeField;
-        private Toggle automaticWeaponField;
+        private DropdownField weaponFireModeField;
         private ObjectField walkFootstepSoundField;
         private ObjectField sprintFootstepSoundField;
         private ObjectField crouchFootstepSoundField;
@@ -48,6 +48,7 @@ namespace IrisTrace.Editor.Windows
         private ObjectField crouchEndSoundField;
         private ObjectField weaponFireSoundField;
         private ObjectField weaponReloadSoundField;
+        private ObjectField weaponDryFireSoundField;
 
         private EnumField ability1TypeField;
         private FloatField ability1CooldownField;
@@ -61,7 +62,6 @@ namespace IrisTrace.Editor.Windows
         private KeyBindingField leftKeyField;
         private KeyBindingField rightKeyField;
         private KeyBindingField jumpKeyField;
-        private KeyBindingField sprintKeyField;
         private KeyBindingField crouchKeyField;
         private KeyBindingField fireKeyField;
         private KeyBindingField reloadKeyField;
@@ -116,7 +116,7 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildAudioPanel());
             content.Add(BuildSection("ABILITIES", "Choose up to two built-in skills. Custom scripts can implement the same ability contract."));
             content.Add(BuildAbilitiesPanel());
-            content.Add(BuildSection("DEFAULT CONTROLS", "Click a binding, then press a key or mouse button. Esc cancels."));
+            content.Add(BuildSection("DEFAULT CONTROLS", "Movement, jump, crouch, fire and reload. Sprint is a selectable hold-to-activate ability."));
             content.Add(BuildBindingsPanel());
             content.Add(BuildFooterActions());
         }
@@ -199,7 +199,7 @@ namespace IrisTrace.Editor.Windows
         {
             VisualElement panel = BuildPanel();
             walkSpeedField = new FloatField("Walk Speed") { value = 5f };
-            sprintSpeedField = new FloatField("Sprint Speed") { value = 8f };
+            sprintSpeedField = new FloatField("Sprint Ability Speed") { value = 8f };
             jumpHeightField = new FloatField("Jump Height") { value = 1.5f };
             gravityMultiplierField = new FloatField("Gravity Multiplier (1 = project gravity)") { value = 1.8f };
             fallGravityMultiplierField = new FloatField("Fall Gravity Multiplier") { value = 2.2f };
@@ -256,7 +256,9 @@ namespace IrisTrace.Editor.Windows
             reserveAmmoField = new IntegerField("Reserve Ammo") { value = 48 };
             reloadDurationField = new FloatField("Reload Duration (s)") { value = 1.4f };
             weaponRangeField = new FloatField("Range (m)") { value = 100f };
-            automaticWeaponField = new Toggle("Automatic Fire") { value = true };
+            weaponFireModeField = new DropdownField("Fire Mode");
+            weaponFireModeField.choices = new List<string> { "Semi-Auto", "Automatic" };
+            weaponFireModeField.value = "Automatic";
 
             StyleField(weaponDamageField);
             StyleField(shotsPerSecondField);
@@ -264,14 +266,14 @@ namespace IrisTrace.Editor.Windows
             StyleField(reserveAmmoField);
             StyleField(reloadDurationField);
             StyleField(weaponRangeField);
-            StyleField(automaticWeaponField);
+            StyleField(weaponFireModeField);
             panel.Add(weaponDamageField);
             panel.Add(shotsPerSecondField);
             panel.Add(magazineSizeField);
             panel.Add(reserveAmmoField);
             panel.Add(reloadDurationField);
             panel.Add(weaponRangeField);
-            panel.Add(automaticWeaponField);
+            panel.Add(weaponFireModeField);
             return panel;
         }
 
@@ -309,8 +311,10 @@ namespace IrisTrace.Editor.Windows
             panel.Add(weaponSounds);
             weaponFireSoundField = AudioField("Fire");
             weaponReloadSoundField = AudioField("Reload");
+            weaponDryFireSoundField = AudioField("Dry Fire (Optional)");
             panel.Add(weaponFireSoundField);
             panel.Add(weaponReloadSoundField);
+            panel.Add(weaponDryFireSoundField);
             return panel;
         }
 
@@ -332,12 +336,12 @@ namespace IrisTrace.Editor.Windows
             ability1TypeField = new EnumField("Ability Slot 1", AbilityKind.Dash);
             ability1KeyField = KeyField("Ability 1 Binding", "<Keyboard>/q");
             ability1CooldownField = new FloatField("Ability 1 Cooldown (s)") { value = 5f };
-            ability1ValueField = new FloatField("Ability 1 Effect (dash metres / heal HP)") { value = 6f };
+            ability1ValueField = new FloatField("Ability 1 Effect (Dash distance / Heal amount)") { value = 6f };
 
             ability2TypeField = new EnumField("Ability Slot 2", AbilityKind.Heal);
             ability2KeyField = KeyField("Ability 2 Binding", "<Keyboard>/e");
             ability2CooldownField = new FloatField("Ability 2 Cooldown (s)") { value = 8f };
-            ability2ValueField = new FloatField("Ability 2 Effect (dash metres / heal HP)") { value = 25f };
+            ability2ValueField = new FloatField("Ability 2 Effect (Dash distance / Heal amount)") { value = 25f };
 
             StyleField(ability1TypeField);
             StyleField(ability1CooldownField);
@@ -354,6 +358,17 @@ namespace IrisTrace.Editor.Windows
             panel.Add(ability2KeyField);
             panel.Add(ability2CooldownField);
             panel.Add(ability2ValueField);
+
+            Label sprintHelp = new Label("Sprint is a hold-to-activate skill. It uses Sprint Ability Speed from Movement settings and has no cooldown.");
+            sprintHelp.style.color = IrisTraceTheme.SecondaryText;
+            sprintHelp.style.fontSize = 10f;
+            sprintHelp.style.whiteSpace = WhiteSpace.Normal;
+            sprintHelp.style.marginTop = 6f;
+            panel.Add(sprintHelp);
+
+            ability1TypeField.RegisterValueChangedCallback(_ => UpdateAbilityFieldState());
+            ability2TypeField.RegisterValueChangedCallback(_ => UpdateAbilityFieldState());
+            UpdateAbilityFieldState();
             return panel;
         }
 
@@ -365,7 +380,6 @@ namespace IrisTrace.Editor.Windows
             leftKeyField = KeyField("Move Left", "<Keyboard>/a");
             rightKeyField = KeyField("Move Right", "<Keyboard>/d");
             jumpKeyField = KeyField("Jump", "<Keyboard>/space");
-            sprintKeyField = KeyField("Sprint", "<Keyboard>/leftShift");
             crouchKeyField = KeyField("Crouch (Hold)", "<Keyboard>/leftCtrl");
             fireKeyField = KeyField("Fire", "<Mouse>/leftButton");
             reloadKeyField = KeyField("Reload", "<Keyboard>/r");
@@ -375,7 +389,6 @@ namespace IrisTrace.Editor.Windows
             panel.Add(leftKeyField);
             panel.Add(rightKeyField);
             panel.Add(jumpKeyField);
-            panel.Add(sprintKeyField);
             panel.Add(crouchKeyField);
             panel.Add(fireKeyField);
             panel.Add(reloadKeyField);
@@ -594,7 +607,6 @@ namespace IrisTrace.Editor.Windows
             SetString(serialized, "moveLeftBinding", leftKeyField.Value);
             SetString(serialized, "moveRightBinding", rightKeyField.Value);
             SetString(serialized, "jumpBinding", jumpKeyField.Value);
-            SetString(serialized, "sprintBinding", sprintKeyField.Value);
             SetString(serialized, "crouchBinding", crouchKeyField.Value);
             SetString(serialized, "fireBinding", fireKeyField.Value);
             SetString(serialized, "reloadBinding", reloadKeyField.Value);
@@ -623,9 +635,10 @@ namespace IrisTrace.Editor.Windows
             SetInt(weaponSerialized, "reserveAmmo", reserveAmmoField.value);
             SetFloat(weaponSerialized, "reloadDuration", reloadDurationField.value);
             SetFloat(weaponSerialized, "range", weaponRangeField.value);
-            SetBool(weaponSerialized, "automatic", automaticWeaponField.value);
+            SetBool(weaponSerialized, "automatic", weaponFireModeField.value == "Automatic");
             SetObjectReference(weaponSerialized, "fireClip", weaponFireSoundField.value);
             SetObjectReference(weaponSerialized, "reloadClip", weaponReloadSoundField.value);
+            SetObjectReference(weaponSerialized, "dryFireClip", weaponDryFireSoundField.value);
             weaponSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             string weaponPath = AssetDatabase.GenerateUniqueAssetPath($"{weaponFolder}/{safeName}_PrimaryWeapon.asset");
@@ -658,7 +671,7 @@ namespace IrisTrace.Editor.Windows
                 return false;
             }
 
-            if (maxHealthField.value <= 0f || walkSpeedField.value <= 0f || sprintSpeedField.value <= 0f ||
+            if (maxHealthField.value <= 0f || walkSpeedField.value <= 0f ||
                 jumpHeightField.value <= 0f || groundAccelerationField.value <= 0f ||
                 groundDecelerationField.value <= 0f || crouchTransitionDurationField.value < 0.05f ||
                 sensitivityField.value <= 0f)
@@ -682,9 +695,11 @@ namespace IrisTrace.Editor.Windows
                 return false;
             }
 
-            if (sprintSpeedField.value < walkSpeedField.value)
+            bool sprintAbilitySelected = GetAbility1Type() == AbilityKind.Sprint || GetAbility2Type() == AbilityKind.Sprint;
+            if (sprintAbilitySelected && (sprintSpeedField.value <= 0f || sprintSpeedField.value < walkSpeedField.value))
             {
-                EditorUtility.DisplayDialog("Invalid Movement", "Sprint Speed must be greater than or equal to Walk Speed.", "OK");
+                EditorUtility.DisplayDialog("Invalid Sprint Settings",
+                    "When Sprint is selected as an ability, Sprint Ability Speed must be greater than or equal to Walk Speed.", "OK");
                 return false;
             }
 
@@ -711,8 +726,10 @@ namespace IrisTrace.Editor.Windows
 
             bool ability1Enabled = GetAbility1Type() != AbilityKind.None;
             bool ability2Enabled = GetAbility2Type() != AbilityKind.None;
-            if ((ability1Enabled && (ability1CooldownField.value <= 0f || ability1ValueField.value <= 0f)) ||
-                (ability2Enabled && (ability2CooldownField.value <= 0f || ability2ValueField.value <= 0f)))
+            bool ability1NeedsValues = ability1Enabled && GetAbility1Type() != AbilityKind.Sprint;
+            bool ability2NeedsValues = ability2Enabled && GetAbility2Type() != AbilityKind.Sprint;
+            if ((ability1NeedsValues && (ability1CooldownField.value <= 0f || ability1ValueField.value <= 0f)) ||
+                (ability2NeedsValues && (ability2CooldownField.value <= 0f || ability2ValueField.value <= 0f)))
             {
                 EditorUtility.DisplayDialog("Invalid Ability Settings", "Enabled abilities need a positive effect value and cooldown.", "OK");
                 return false;
@@ -721,12 +738,12 @@ namespace IrisTrace.Editor.Windows
             List<KeyBindingField> fields = new List<KeyBindingField>
             {
                 forwardKeyField, backwardKeyField, leftKeyField, rightKeyField,
-                jumpKeyField, sprintKeyField, fireKeyField, reloadKeyField
+                jumpKeyField, fireKeyField, reloadKeyField
             };
             List<string> labels = new List<string>
             {
                 "Move Forward", "Move Backward", "Move Left", "Move Right",
-                "Jump", "Sprint", "Fire", "Reload"
+                "Jump", "Fire", "Reload"
             };
             if (crouchEnabledField.value) { fields.Add(crouchKeyField); labels.Add("Crouch"); }
             if (ability1Enabled) { fields.Add(ability1KeyField); labels.Add("Ability 1"); }
@@ -753,6 +770,26 @@ namespace IrisTrace.Editor.Windows
             }
 
             return true;
+        }
+
+        private void UpdateAbilityFieldState()
+        {
+            bool slot1Sprint = GetAbility1Type() == AbilityKind.Sprint;
+            bool slot2Sprint = GetAbility2Type() == AbilityKind.Sprint;
+
+            ability1CooldownField?.SetEnabled(!slot1Sprint);
+            ability1ValueField?.SetEnabled(!slot1Sprint);
+            ability2CooldownField?.SetEnabled(!slot2Sprint);
+            ability2ValueField?.SetEnabled(!slot2Sprint);
+
+            if (ability1CooldownField != null)
+                ability1CooldownField.label = slot1Sprint ? "Cooldown (not used by Sprint)" : "Ability 1 Cooldown (s)";
+            if (ability1ValueField != null)
+                ability1ValueField.label = slot1Sprint ? "Effect (Sprint uses Sprint Ability Speed)" : "Ability 1 Effect (Dash distance / Heal amount)";
+            if (ability2CooldownField != null)
+                ability2CooldownField.label = slot2Sprint ? "Cooldown (not used by Sprint)" : "Ability 2 Cooldown (s)";
+            if (ability2ValueField != null)
+                ability2ValueField.label = slot2Sprint ? "Effect (Sprint uses Sprint Ability Speed)" : "Ability 2 Effect (Dash distance / Heal amount)";
         }
 
         private AbilityKind GetAbility1Type()

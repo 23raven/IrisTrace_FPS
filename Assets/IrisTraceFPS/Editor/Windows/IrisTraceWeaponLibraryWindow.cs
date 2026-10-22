@@ -30,9 +30,10 @@ namespace IrisTrace.Editor.Windows
         private IntegerField reserveAmmoField;
         private FloatField reloadDurationField;
         private FloatField rangeField;
-        private Toggle automaticField;
+        private DropdownField fireModeField;
         private ObjectField fireClipField;
         private ObjectField reloadClipField;
+        private ObjectField dryFireClipField;
 
         [MenuItem("Window/IrisTrace FPS/Weapon Library")]
         public static void Open()
@@ -208,9 +209,12 @@ namespace IrisTrace.Editor.Windows
             reserveAmmoField = new IntegerField("Starting Reserve Ammo") { value = selected.StartingReserveAmmo };
             reloadDurationField = new FloatField("Reload Duration (s)") { value = selected.ReloadDuration };
             rangeField = new FloatField("Range") { value = selected.Range };
-            automaticField = new Toggle("Automatic Fire") { value = selected.Automatic };
+            fireModeField = new DropdownField("Fire Mode");
+            fireModeField.choices = new List<string> { "Semi-Auto", "Automatic" };
+            fireModeField.value = selected.Automatic ? "Automatic" : "Semi-Auto";
             fireClipField = new ObjectField("Fire Sound") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.FireClip };
             reloadClipField = new ObjectField("Reload Sound") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.ReloadClip };
+            dryFireClipField = new ObjectField("Dry-Fire Sound (Optional)") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.DryFireClip };
 
             AddField(panel, nameField);
             AddField(panel, damageField);
@@ -219,9 +223,10 @@ namespace IrisTrace.Editor.Windows
             AddField(panel, reserveAmmoField);
             AddField(panel, reloadDurationField);
             AddField(panel, rangeField);
-            AddField(panel, automaticField);
+            AddField(panel, fireModeField);
             AddField(panel, fireClipField);
             AddField(panel, reloadClipField);
+            AddField(panel, dryFireClipField);
 
             VisualElement actions = new VisualElement();
             actions.style.flexDirection = FlexDirection.Row;
@@ -300,11 +305,13 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "reloadDuration", Mathf.Max(0.1f, reloadDurationField.value));
             SetFloat(serialized, "range", Mathf.Max(1f, rangeField.value));
             SerializedProperty automatic = serialized.FindProperty("automatic");
-            if (automatic != null) automatic.boolValue = automaticField.value;
+            if (automatic != null) automatic.boolValue = fireModeField.value == "Automatic";
             SerializedProperty fireClip = serialized.FindProperty("fireClip");
             if (fireClip != null) fireClip.objectReferenceValue = fireClipField.value;
             SerializedProperty reloadClip = serialized.FindProperty("reloadClip");
             if (reloadClip != null) reloadClip.objectReferenceValue = reloadClipField.value;
+            SerializedProperty dryFireClip = serialized.FindProperty("dryFireClip");
+            if (dryFireClip != null) dryFireClip.objectReferenceValue = dryFireClipField.value;
             serialized.ApplyModifiedProperties();
 
             string assetPath = AssetDatabase.GetAssetPath(selected);

@@ -57,6 +57,7 @@ namespace IrisTrace.Runtime.Audio
             if (subscribed || weapon == null)
                 return;
             weapon.ShotFired += OnShotFired;
+            weapon.DryFired += OnDryFired;
             weapon.ReloadStarted += OnReloadStarted;
             subscribed = true;
         }
@@ -66,11 +67,13 @@ namespace IrisTrace.Runtime.Audio
             if (!subscribed || weapon == null)
                 return;
             weapon.ShotFired -= OnShotFired;
+            weapon.DryFired -= OnDryFired;
             weapon.ReloadStarted -= OnReloadStarted;
             subscribed = false;
         }
 
         private void OnShotFired() => Play(definition != null ? definition.FireClip : null);
+        private void OnDryFired() => Play(definition != null ? definition.DryFireClip : null);
         private void OnReloadStarted() => Play(definition != null ? definition.ReloadClip : null);
 
         private void Play(AudioClip clip)

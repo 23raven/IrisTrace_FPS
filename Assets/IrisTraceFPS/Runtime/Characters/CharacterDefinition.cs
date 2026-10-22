@@ -7,7 +7,8 @@ namespace IrisTrace.Runtime.Characters
     {
         None = 0,
         Dash = 1,
-        Heal = 2
+        Heal = 2,
+        Sprint = 3
     }
 
     /// <summary>Saved configuration for a generated IrisTrace FPS character.</summary>
@@ -59,7 +60,6 @@ namespace IrisTrace.Runtime.Characters
         [SerializeField] private string moveLeftBinding = "<Keyboard>/a";
         [SerializeField] private string moveRightBinding = "<Keyboard>/d";
         [SerializeField] private string jumpBinding = "<Keyboard>/space";
-        [SerializeField] private string sprintBinding = "<Keyboard>/leftShift";
         [SerializeField] private string crouchBinding = "<Keyboard>/leftCtrl";
         [SerializeField] private string fireBinding = "<Mouse>/leftButton";
         [SerializeField] private string reloadBinding = "<Keyboard>/r";
@@ -112,7 +112,6 @@ namespace IrisTrace.Runtime.Characters
         public string MoveLeftBinding => moveLeftBinding;
         public string MoveRightBinding => moveRightBinding;
         public string JumpBinding => jumpBinding;
-        public string SprintBinding => sprintBinding;
         public string CrouchBinding => crouchBinding;
         public string FireBinding => fireBinding;
         public string ReloadBinding => reloadBinding;

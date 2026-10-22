@@ -10,7 +10,7 @@ namespace IrisTrace.Runtime.Input
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(-1000)]
-    public sealed class IrisTraceInputReader : MonoBehaviour, ICharacterInput, IWeaponInput, IAbilityInput
+    public sealed class IrisTraceInputReader : MonoBehaviour, ICharacterInput, IWeaponInput, IAbilityInput, IAbilityHoldInput
     {
         [Header("Movement bindings")]
         [SerializeField] private string moveForward = "<Keyboard>/w";
@@ -18,7 +18,6 @@ namespace IrisTrace.Runtime.Input
         [SerializeField] private string moveLeft = "<Keyboard>/a";
         [SerializeField] private string moveRight = "<Keyboard>/d";
         [SerializeField] private string jump = "<Keyboard>/space";
-        [SerializeField] private string sprint = "<Keyboard>/leftShift";
         [SerializeField] private string crouch = "<Keyboard>/leftCtrl";
 
         [Header("Weapon bindings")]
@@ -32,7 +31,6 @@ namespace IrisTrace.Runtime.Input
         private InputAction moveAction;
         private InputAction lookAction;
         private InputAction jumpAction;
-        private InputAction sprintAction;
         private InputAction crouchAction;
         private InputAction fireAction;
         private InputAction reloadAction;
@@ -43,7 +41,6 @@ namespace IrisTrace.Runtime.Input
         public Vector2 Move => moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
         public Vector2 LookDelta => lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
         public bool JumpPressed => jumpAction != null && jumpAction.WasPressedThisFrame();
-        public bool SprintHeld => sprintAction != null && sprintAction.IsPressed();
         public bool CrouchHeld => crouchAction != null && crouchAction.IsPressed();
         public bool CancelPressed => cancelAction != null && cancelAction.WasPressedThisFrame();
         public bool FirePressed => fireAction != null && fireAction.WasPressedThisFrame();
@@ -52,47 +49,33 @@ namespace IrisTrace.Runtime.Input
         public bool ReloadPressed => reloadAction != null && reloadAction.WasPressedThisFrame();
         public bool Ability1Pressed => ability1Action != null && ability1Action.WasPressedThisFrame();
         public bool Ability2Pressed => ability2Action != null && ability2Action.WasPressedThisFrame();
+        public bool Ability1Held => ability1Action != null && ability1Action.IsPressed();
+        public bool Ability2Held => ability2Action != null && ability2Action.IsPressed();
 
-        // Backward-compatible overload for any existing code that configures only base controls.
+        // Compatibility overload for older integrations. The legacy sprint path is intentionally ignored;
+        // sprint is now configured as a hold-to-activate ability in slot 1 or slot 2.
         public void Configure(
             string moveForwardPath,
             string moveBackwardPath,
             string moveLeftPath,
             string moveRightPath,
             string jumpPath,
-            string sprintPath,
+            string legacySprintPath,
             string firePath,
             string reloadPath)
         {
             Configure(moveForwardPath, moveBackwardPath, moveLeftPath, moveRightPath,
-                jumpPath, sprintPath, firePath, reloadPath,
+                jumpPath, firePath, reloadPath,
                 "<Keyboard>/q", "<Keyboard>/e", "<Keyboard>/leftCtrl");
         }
 
+        // Primary configuration: no Sprint binding in the default control set.
         public void Configure(
             string moveForwardPath,
             string moveBackwardPath,
             string moveLeftPath,
             string moveRightPath,
             string jumpPath,
-            string sprintPath,
-            string firePath,
-            string reloadPath,
-            string ability1Path,
-            string ability2Path)
-        {
-            Configure(moveForwardPath, moveBackwardPath, moveLeftPath, moveRightPath,
-                jumpPath, sprintPath, firePath, reloadPath, ability1Path, ability2Path,
-                "<Keyboard>/leftCtrl");
-        }
-
-        public void Configure(
-            string moveForwardPath,
-            string moveBackwardPath,
-            string moveLeftPath,
-            string moveRightPath,
-            string jumpPath,
-            string sprintPath,
             string firePath,
             string reloadPath,
             string ability1Path,
@@ -104,7 +87,6 @@ namespace IrisTrace.Runtime.Input
             moveLeft = SafePath(moveLeftPath, "<Keyboard>/a");
             moveRight = SafePath(moveRightPath, "<Keyboard>/d");
             jump = SafePath(jumpPath, "<Keyboard>/space");
-            sprint = SafePath(sprintPath, "<Keyboard>/leftShift");
             crouch = SafePath(crouchPath, "<Keyboard>/leftCtrl");
             fire = SafePath(firePath, "<Mouse>/leftButton");
             reload = SafePath(reloadPath, "<Keyboard>/r");
@@ -113,6 +95,24 @@ namespace IrisTrace.Runtime.Input
 
             if (Application.isPlaying && isActiveAndEnabled)
                 CreateActions();
+        }
+
+        // Compatibility overload for projects which serialized the previous 11-argument configuration.
+        public void Configure(
+            string moveForwardPath,
+            string moveBackwardPath,
+            string moveLeftPath,
+            string moveRightPath,
+            string jumpPath,
+            string legacySprintPath,
+            string firePath,
+            string reloadPath,
+            string ability1Path,
+            string ability2Path,
+            string crouchPath)
+        {
+            Configure(moveForwardPath, moveBackwardPath, moveLeftPath, moveRightPath,
+                jumpPath, firePath, reloadPath, ability1Path, ability2Path, crouchPath);
         }
 
         private void OnEnable()
@@ -136,7 +136,6 @@ namespace IrisTrace.Runtime.Input
 
             lookAction = new InputAction("Look", InputActionType.Value, "<Mouse>/delta", expectedControlType: "Vector2");
             jumpAction = new InputAction("Jump", InputActionType.Button, SafePath(jump, "<Keyboard>/space"));
-            sprintAction = new InputAction("Sprint", InputActionType.Button, SafePath(sprint, "<Keyboard>/leftShift"));
             crouchAction = new InputAction("Crouch", InputActionType.Button, SafePath(crouch, "<Keyboard>/leftCtrl"));
             fireAction = new InputAction("Fire", InputActionType.Button, SafePath(fire, "<Mouse>/leftButton"));
             reloadAction = new InputAction("Reload", InputActionType.Button, SafePath(reload, "<Keyboard>/r"));
@@ -147,7 +146,6 @@ namespace IrisTrace.Runtime.Input
             moveAction.Enable();
             lookAction.Enable();
             jumpAction.Enable();
-            sprintAction.Enable();
             crouchAction.Enable();
             fireAction.Enable();
             reloadAction.Enable();
@@ -161,7 +159,6 @@ namespace IrisTrace.Runtime.Input
             DisposeAction(ref moveAction);
             DisposeAction(ref lookAction);
             DisposeAction(ref jumpAction);
-            DisposeAction(ref sprintAction);
             DisposeAction(ref crouchAction);
             DisposeAction(ref fireAction);
             DisposeAction(ref reloadAction);

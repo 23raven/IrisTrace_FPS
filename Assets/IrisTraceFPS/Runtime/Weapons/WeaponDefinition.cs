@@ -18,6 +18,7 @@ namespace IrisTrace.Runtime.Weapons
         [Header("Optional Audio")]
         [SerializeField] private AudioClip fireClip;
         [SerializeField] private AudioClip reloadClip;
+        [SerializeField] private AudioClip dryFireClip;
 
         public string Id => id;
         public string DisplayName => displayName;
@@ -30,5 +31,6 @@ namespace IrisTrace.Runtime.Weapons
         public bool Automatic => automatic;
         public AudioClip FireClip => fireClip;
         public AudioClip ReloadClip => reloadClip;
+        public AudioClip DryFireClip => dryFireClip;
     }
 }

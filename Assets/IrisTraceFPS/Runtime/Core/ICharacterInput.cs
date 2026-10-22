@@ -8,7 +8,6 @@ namespace IrisTrace.Runtime.Core
         Vector2 Move { get; }
         Vector2 LookDelta { get; }
         bool JumpPressed { get; }
-        bool SprintHeld { get; }
         bool CrouchHeld { get; }
         bool CancelPressed { get; }
     }

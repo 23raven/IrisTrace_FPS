@@ -78,7 +78,6 @@ namespace IrisTrace.Editor.Generators
                     definition.MoveLeftBinding,
                     definition.MoveRightBinding,
                     definition.JumpBinding,
-                    definition.SprintBinding,
                     definition.FireBinding,
                     definition.ReloadBinding,
                     definition.Ability1Binding,
@@ -93,7 +92,8 @@ namespace IrisTrace.Editor.Generators
                 MonoBehaviour ability2 = CreateAbility(buildRoot, definition.Ability2Type,
                     definition.Ability2Value, definition.Ability2Cooldown);
                 AbilityInputHandler abilityInput = buildRoot.AddComponent<AbilityInputHandler>();
-                abilityInput.Configure(inputReader, ability1, ability2);
+                abilityInput.Configure(inputReader, ability1, ability2,
+                    definition.Ability1Binding, definition.Ability2Binding);
 
                 // The HUD reads telemetry interfaces and does not depend on concrete weapon classes.
                 buildRoot.AddComponent<FPSRuntimeHUD>();
@@ -154,6 +154,8 @@ namespace IrisTrace.Editor.Generators
                     HealAbility heal = root.AddComponent<HealAbility>();
                     heal.Configure(value, cooldown);
                     return heal;
+                case AbilityKind.Sprint:
+                    return root.AddComponent<SprintAbility>();
                 default:
                     throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported built-in ability type.");
             }

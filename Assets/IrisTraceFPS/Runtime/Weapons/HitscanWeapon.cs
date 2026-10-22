@@ -17,6 +17,7 @@ namespace IrisTrace.Runtime.Weapons
         private int currentAmmoInMagazine;
         private int reserveAmmo;
         private float nextShotTime;
+        private float nextDryFireTime;
         private bool isFiring;
         private Coroutine reloadRoutine;
 
@@ -27,6 +28,7 @@ namespace IrisTrace.Runtime.Weapons
 
         /// <summary>Raised after ammo is consumed for a valid shot attempt.</summary>
         public event Action ShotFired;
+        public event Action DryFired;
         public event Action ReloadStarted;
         public event Action ReloadCompleted;
 
@@ -92,7 +94,15 @@ namespace IrisTrace.Runtime.Weapons
             if (currentAmmoInMagazine <= 0)
             {
                 if (reserveAmmo > 0)
+                {
                     Reload();
+                }
+                else if (Time.time >= nextDryFireTime)
+                {
+                    // Rate-limit dry-fire feedback so holding the trigger cannot spam audio/events.
+                    nextDryFireTime = Time.time + 0.25f;
+                    DryFired?.Invoke();
+                }
                 return;
             }
 

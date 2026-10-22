@@ -24,6 +24,7 @@ namespace IrisTrace.Runtime.Characters
         private readonly Collider[] overlapBuffer = new Collider[32];
         private ICharacterInput input;
         private IWeaponInput weaponInput;
+        private ISprintState sprintState;
         private Vector3 horizontalVelocity;
         private float verticalVelocity;
         private float cameraPitch;
@@ -40,7 +41,7 @@ namespace IrisTrace.Runtime.Characters
         public bool IsCrouching => isCrouching;
         public bool IsMoving => movementEventActive;
         public bool IsGrounded => characterController != null && characterController.isGrounded;
-        public bool IsSprinting => !isCrouching && input != null && input.SprintHeld;
+        public bool IsSprinting => !isCrouching && sprintState != null && sprintState.IsSprinting;
         public Vector3 HorizontalVelocity => horizontalVelocity;
 
         /// <summary>Raised when the character begins actual horizontal movement.</summary>
@@ -64,6 +65,7 @@ namespace IrisTrace.Runtime.Characters
             inputSource = inputComponent;
             input = inputComponent as ICharacterInput;
             weaponInput = inputComponent as IWeaponInput;
+            ResolveSprintState();
             CaptureStandingPose();
             horizontalVelocity = Vector3.zero;
             verticalVelocity = 0f;
@@ -99,7 +101,22 @@ namespace IrisTrace.Runtime.Characters
                 }
             }
 
+            ResolveSprintState();
             CaptureStandingPose();
+        }
+
+        private void ResolveSprintState()
+        {
+            sprintState = null;
+            MonoBehaviour[] behaviours = GetComponents<MonoBehaviour>();
+            foreach (MonoBehaviour behaviour in behaviours)
+            {
+                if (behaviour is ISprintState state)
+                {
+                    sprintState = state;
+                    return;
+                }
+            }
         }
 
         private void Start() => LockCursor();
@@ -157,7 +174,7 @@ namespace IrisTrace.Runtime.Characters
             bool useCrouchSpeed = isCrouching || wantsCrouch;
             float targetSpeed = useCrouchSpeed
                 ? Mathf.Max(0.1f, definition.CrouchSpeed)
-                : (input.SprintHeld ? definition.SprintSpeed : definition.WalkSpeed);
+                : (IsSprinting ? definition.SprintSpeed : definition.WalkSpeed);
 
             Vector3 desiredHorizontalVelocity = transform.TransformDirection(localDirection) * targetSpeed;
             bool groundedBeforeMove = characterController.isGrounded;
@@ -180,7 +197,8 @@ namespace IrisTrace.Runtime.Characters
             if (groundedBeforeMove && verticalVelocity < 0f)
                 verticalVelocity = -2f;
 
-            if (!isCrouching && groundedBeforeMove && input.JumpPressed)
+            // Do not jump while crouch is held or the controller is in a crouched state.
+            if (groundedBeforeMove && input.JumpPressed && !input.CrouchHeld && !isCrouching)
             {
                 // Calculate take-off speed from the same configured gravity used during ascent.
                 verticalVelocity = Mathf.Sqrt(Mathf.Max(0.1f, definition.JumpHeight) * 2f * gravityMagnitude);
@@ -198,7 +216,9 @@ namespace IrisTrace.Runtime.Characters
             movement.y = verticalVelocity;
 
             Vector3 previousPosition = transform.position;
-            characterController.Move(movement * deltaTime);
+            CollisionFlags collisionFlags = characterController.Move(movement * deltaTime);
+            if ((collisionFlags & CollisionFlags.Above) != 0 && verticalVelocity > 0f)
+                verticalVelocity = 0f;
 
             bool groundedAfterMove = characterController.isGrounded;
             if (!groundedBeforeMove && groundedAfterMove)
