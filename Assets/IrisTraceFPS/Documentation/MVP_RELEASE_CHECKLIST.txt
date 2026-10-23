@@ -1,30 +1,40 @@
-IRISTRACE FPS — MVP RELEASE CHECKLIST
+IRISTRACE FPS — MVP CHECKLIST
 
-UNITY IMPORT
-[ ] Open the project in Unity 6.3+.
-[ ] Wait for compilation; Console has no IrisTrace errors.
-[ ] Confirm Input System package is installed and enabled.
+IMPORT
+[ ] Open in Unity 6.3+ and wait for compilation.
+[ ] Console has no IrisTrace compile errors.
+[ ] Input System package is installed and enabled.
 
 EDITOR
-[ ] Open IrisTrace FPS main window.
-[ ] Confirm fixed IrisTrace theme uses background #383838.
-[ ] Create, save and duplicate a hero configuration.
-[ ] Create and save an enemy configuration.
-[ ] Create/edit a weapon configuration.
+[ ] Open IrisTrace FPS generator.
+[ ] Create, save, duplicate and delete a character configuration.
+[ ] Assign and preview a portrait Sprite.
+[ ] Create/edit/delete weapon and enemy configurations.
+[ ] Confirm delete prompts prevent accidental removal.
+[ ] Run Release Audit and Project Validation.
 
-PLAY MODE
-[ ] Generate a NEW hero prefab.
-[ ] Verify camera, WASD, mouse look, jump and sprint.
-[ ] Verify firing, magazine, reserve ammo and reload.
-[ ] Hit a training target; target health decreases and it is destroyed at zero.
-[ ] Verify the weapon does not hit the player itself.
-[ ] Verify Dash and Heal when enabled.
-[ ] Check Basic AI behavior in a scene with suitable navigation setup.
+PLAYER
+[ ] Generate a NEW hero prefab and test it in Play Mode.
+[ ] WASD, mouse look and jump work.
+[ ] Holding crouch blocks jumping; cannot stand under a low ceiling.
+[ ] Movement and gravity feel responsive.
+[ ] Sprint works only when its ability is assigned.
+[ ] Fire, ammo, manual reload and automatic reload work.
+[ ] Empty-ammo behavior is correct; player is not hit by own weapon.
+[ ] Ability HUD shows Q/E slots and cooldowns.
+[ ] Assigned Dash, Heal and Sprint abilities work.
+[ ] Optional audio clips play; empty audio slots do not break gameplay.
 
-VALIDATION
-[ ] Create Test Arena.
-[ ] Run Project Validation and resolve all Fail results.
-[ ] Confirm generated files are under Assets/IrisTraceFPS_Generated/.
-[ ] Test import in a clean copy of the project.
+ENEMIES AND OUTPUT
+[ ] Training target takes damage and is destroyed at zero health.
+[ ] Basic AI detects, follows and attacks the player as configured.
+[ ] Test AI with a baked NavMesh; verify fallback behavior separately.
+[ ] Generated prefabs/configurations are saved under Assets/IrisTraceFPS_Generated/.
+[ ] Regenerating content does not silently erase custom changes.
 
-Do not publish as a stable release until every applicable check is verified in Unity.
+RELEASE
+[ ] Import and test in a clean copy of the project.
+[ ] Verify all included models, sounds and other assets have distribution rights.
+[ ] Review all warnings in Release Audit; complete manual Play Mode checks.
+
+Passing the automated audit is not proof of release readiness. Do not publish until manual checks are verified in Unity.

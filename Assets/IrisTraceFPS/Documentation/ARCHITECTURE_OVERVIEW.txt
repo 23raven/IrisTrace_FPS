@@ -1,27 +1,29 @@
 IRISTRACE FPS — ARCHITECTURE OVERVIEW
 
+RUNTIME
+- Core: contracts shared across gameplay modules.
+- Input: adapter around Unity Input System.
+- Characters: movement, camera and player health.
+- Weapons: firing, ammunition and reload behavior.
+- Abilities: independently assigned character skills.
+- Enemies: target health and basic AI behavior.
+- UI: runtime HUD for health, ammo and abilities.
+
 EDITOR
-Owns the windows, configuration wizards, asset libraries, generators and project validation.
-Editor code must not be referenced by Runtime code.
+- Windows: generator and content libraries.
+- Generators: build prefab and test scene objects.
+- Validation: detect common configuration issues.
+- Release Audit: check key folders, assembly definitions and Input System declaration.
 
-RUNTIME MODULES
-Core       Shared contracts such as damage, health, input and weapon interfaces.
-Characters Player controller, character configuration and health.
-Input      New Input System adapter; gameplay modules use input contracts.
-Weapons    Weapon configuration, hitscan fire, ammo and reload.
-Abilities  Reusable ability contract and sample Dash/Heal abilities.
-Enemies    Training target, enemy health and simple AI behavior.
-UI         Runtime HUD.
+DATA AND OUTPUT
+- Reusable definitions are stored as Unity assets/configurations.
+- Generated prefabs and configurations are kept separately under Assets/IrisTraceFPS_Generated/.
+- IDs identify saved definitions; display names may change.
 
-DATA FLOW
-Editor wizard -> saved configuration -> prefab generator -> prefab in scene.
-At runtime, input contracts trigger movement, weapons and abilities.
-Weapons apply damage through shared target contracts, not concrete enemy classes.
+DEPENDENCY RULES
+- Runtime code must not depend on Editor code.
+- Weapons should target damage/health contracts, not concrete character classes.
+- Ability activation should use ability contracts, not hard-coded hero types.
+- Input details should stay behind the input adapter.
 
-GENERATED CONTENT
-Assets/IrisTraceFPS_Generated/Configurations/
-Assets/IrisTraceFPS_Generated/Prefabs/
-Assets/IrisTraceFPS_Generated/Scenes/
-
-Keep custom scripts outside the IrisTraceFPS source folders where possible.
-Prefer interfaces and separate components over editing the framework's core scripts.
+This overview describes intended module boundaries. Verify actual behavior and dependencies in the current project before release.
