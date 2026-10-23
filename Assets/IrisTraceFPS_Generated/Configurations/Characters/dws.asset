@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b179288611162c469be5ccd5a55d2a4, type: 3}
+  m_Name: dws
+  m_EditorClassIdentifier: IrisTrace.Runtime.Characters::IrisTrace.Runtime.Characters.CharacterDefinition
+  id: ae841e2b62874ee99f7f6ba291776cba
+  primaryWeaponId: 
+  displayName: dws
+  portraitIcon: {fileID: 0}
+  maxHealth: 100
+  walkSpeed: 5
+  sprintSpeed: 8
+  jumpHeight: 1.5
+  gravityMultiplier: 1.8
+  fallGravityMultiplier: 2.2
+  maximumFallSpeed: 35
+  groundAcceleration: 18
+  groundDeceleration: 22
+  airControl: 0.35
+  crouchEnabled: 1
+  crouchSpeed: 2.5
+  crouchedHeight: 1.1
+  crouchTransitionDuration: 0.18
+  walkFootstepClip: {fileID: 0}
+  sprintFootstepClip: {fileID: 0}
+  crouchFootstepClip: {fileID: 0}
+  jumpClip: {fileID: 0}
+  landingClip: {fileID: 0}
+  crouchStartClip: {fileID: 0}
+  crouchEndClip: {fileID: 0}
+  walkFootstepInterval: 0.42
+  sprintFootstepInterval: 0.29
+  crouchFootstepInterval: 0.62
+  mouseSensitivity: 1
+  cameraFieldOfView: 90
+  moveForwardBinding: <Keyboard>/w
+  moveBackwardBinding: <Keyboard>/s
+  moveLeftBinding: <Keyboard>/a
+  moveRightBinding: <Keyboard>/d
+  jumpBinding: <Keyboard>/space
+  crouchBinding: <Keyboard>/leftCtrl
+  fireBinding: <Mouse>/leftButton
+  reloadBinding: <Keyboard>/r
+  ability1Type: 1
+  ability1Binding: <Keyboard>/leftShift
+  ability1Cooldown: 5
+  ability1Value: 6
+  ability2Type: 2
+  ability2Binding: <Keyboard>/e
+  ability2Cooldown: 8
+  ability2Value: 25

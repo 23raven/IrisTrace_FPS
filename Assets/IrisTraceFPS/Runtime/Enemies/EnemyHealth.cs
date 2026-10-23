@@ -1,9 +1,10 @@
+using System;
 using UnityEngine;
 using IrisTrace.Runtime.Core;
 
 namespace IrisTrace.Runtime.Enemies
 {
-    /// <summary>Health and simple damage feedback for generated enemy prefabs.</summary>
+    /// <summary>Reusable health and death feedback for generated enemy prefabs.</summary>
     [DisallowMultipleComponent]
     public sealed class EnemyHealth : MonoBehaviour, IDamageable, IHealthStatus
     {
@@ -19,6 +20,8 @@ namespace IrisTrace.Runtime.Enemies
         public float CurrentHealth => currentHealth;
         public float MaxHealth => maxHealth;
         public bool IsDead => currentHealth <= 0f;
+        public event Action<float, float> HealthChanged;
+        public event Action Died;
 
         public void Configure(float health)
         {
@@ -42,11 +45,13 @@ namespace IrisTrace.Runtime.Enemies
 
             currentHealth = Mathf.Max(0f, currentHealth - amount);
             UpdateVisuals();
+            HealthChanged?.Invoke(currentHealth, maxHealth);
 
             if (IsDead)
             {
                 DisableCombat();
                 Debug.Log($"Enemy '{name}' defeated.", this);
+                Died?.Invoke();
             }
             else
             {
@@ -94,7 +99,8 @@ namespace IrisTrace.Runtime.Enemies
                 CacheComponents();
 
             foreach (Collider cachedCollider in cachedColliders)
-                if (cachedCollider != null) cachedCollider.enabled = false;
+                if (cachedCollider != null)
+                    cachedCollider.enabled = false;
 
             BasicEnemyAI ai = GetComponent<BasicEnemyAI>();
             if (ai != null)

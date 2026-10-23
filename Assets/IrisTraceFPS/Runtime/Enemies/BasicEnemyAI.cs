@@ -5,8 +5,8 @@ using IrisTrace.Runtime.Core;
 namespace IrisTrace.Runtime.Enemies
 {
     /// <summary>
-    /// Small enemy brain. Uses NavMeshAgent where a baked NavMesh exists and falls back to direct pursuit otherwise.
-    /// The fallback avoids a broken prefab in simple prototype scenes; production levels should use NavMesh.
+    /// Lightweight enemy brain. Uses NavMesh when available; otherwise moves in a straight line
+    /// while respecting simple obstacle checks. Complex pathfinding requires a baked NavMesh.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class BasicEnemyAI : MonoBehaviour
@@ -14,14 +14,22 @@ namespace IrisTrace.Runtime.Enemies
         [SerializeField] private EnemyDefinition definition;
         [SerializeField] private EnemyHealth health;
         [SerializeField] private NavMeshAgent agent;
+        [SerializeField, Min(0.1f)] private float targetSearchInterval = 0.65f;
+        [SerializeField, Min(0.05f)] private float destinationRefreshInterval = 0.25f;
+        [SerializeField, Min(0.1f)] private float fallbackObstacleProbeDistance = 0.25f;
 
         private MonoBehaviour targetComponent;
+        private Transform targetRoot;
         private ICombatTarget combatTarget;
         private IDamageable targetDamageable;
         private IHealthStatus targetHealth;
         private float nextTargetSearchTime;
         private float nextAttackTime;
+        private float nextAttackCheckTime;
         private float nextNavMeshCheckTime;
+        private float nextDestinationRefreshTime;
+        private Vector3 lastDestination;
+        private readonly RaycastHit[] attackHits = new RaycastHit[32];
 
         public void Configure(EnemyDefinition enemyDefinition, EnemyHealth enemyHealth, NavMeshAgent navMeshAgent)
         {
@@ -37,7 +45,7 @@ namespace IrisTrace.Runtime.Enemies
             if (agent == null)
                 agent = GetComponent<NavMeshAgent>();
 
-            // Generated agents are saved disabled to prevent errors in scenes without baked navigation.
+            // Generated NavMeshAgents start disabled so prefabs can be used in scenes without a NavMesh.
             if (agent != null && agent.enabled && !agent.isOnNavMesh)
                 agent.enabled = false;
         }
@@ -45,30 +53,31 @@ namespace IrisTrace.Runtime.Enemies
         private void Update()
         {
             if (definition == null || health == null || health.IsDead || definition.Behavior != EnemyBehaviorMode.BasicAI)
-                return;
-
-            if (targetComponent == null || targetHealth == null || targetHealth.IsDead)
-            {
-                if (Time.time >= nextTargetSearchTime)
-                {
-                    nextTargetSearchTime = Time.time + 0.75f;
-                    FindTarget();
-                }
-            }
-
-            if (targetComponent == null || combatTarget == null || targetDamageable == null || targetHealth == null || targetHealth.IsDead)
             {
                 StopMovement();
                 return;
             }
 
-            Vector3 flatOffset = targetComponent.transform.position - transform.position;
+            if (!HasValidTarget() && Time.time >= nextTargetSearchTime)
+            {
+                nextTargetSearchTime = Time.time + Mathf.Max(0.1f, targetSearchInterval);
+                FindTarget();
+            }
+
+            if (!HasValidTarget())
+            {
+                StopMovement();
+                return;
+            }
+
+            Vector3 flatOffset = targetRoot.position - transform.position;
             flatOffset.y = 0f;
             float distance = flatOffset.magnitude;
 
             if (distance > definition.DetectionRange)
             {
                 StopMovement();
+                ClearTarget();
                 return;
             }
 
@@ -83,96 +92,244 @@ namespace IrisTrace.Runtime.Enemies
             TryAttack();
         }
 
+        private bool HasValidTarget()
+        {
+            return targetComponent != null && targetRoot != null && combatTarget != null &&
+                   targetDamageable != null && targetHealth != null && !targetHealth.IsDead;
+        }
+
         private void FindTarget()
         {
+            ClearTarget();
             MonoBehaviour[] candidates = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
-            float bestDistance = float.MaxValue;
+            float bestDistance = definition.DetectionRange * definition.DetectionRange;
 
             foreach (MonoBehaviour candidate in candidates)
             {
-                if (candidate == null || candidate.gameObject == gameObject || !(candidate is ICombatTarget possibleTarget))
+                if (candidate == null || !candidate.isActiveAndEnabled || !(candidate is ICombatTarget possibleTarget))
                     continue;
 
-                IDamageable damageable = null;
-                IHealthStatus healthStatus = null;
-                MonoBehaviour[] targetComponents = candidate.GetComponents<MonoBehaviour>();
-                foreach (MonoBehaviour targetPart in targetComponents)
-                {
-                    if (damageable == null && targetPart is IDamageable foundDamageable)
-                        damageable = foundDamageable;
-                    if (healthStatus == null && targetPart is IHealthStatus foundHealth)
-                        healthStatus = foundHealth;
-                }
-
-                if (damageable == null || healthStatus == null || healthStatus.IsDead)
+                Transform candidateTransform = candidate.transform;
+                if (candidateTransform == transform || candidateTransform.IsChildOf(transform) || transform.IsChildOf(candidateTransform))
                     continue;
 
-                float distance = (candidate.transform.position - transform.position).sqrMagnitude;
+                if (!TryResolveTarget(candidate, possibleTarget, out Transform resolvedRoot,
+                        out IDamageable damageable, out IHealthStatus healthStatus))
+                    continue;
+
+                if (healthStatus.IsDead)
+                    continue;
+
+                Vector3 offset = resolvedRoot.position - transform.position;
+                offset.y = 0f;
+                float distance = offset.sqrMagnitude;
                 if (distance >= bestDistance)
                     continue;
 
                 bestDistance = distance;
                 targetComponent = candidate;
+                targetRoot = resolvedRoot;
                 combatTarget = possibleTarget;
                 targetDamageable = damageable;
                 targetHealth = healthStatus;
             }
         }
 
-        private void MoveTowardsTarget()
+        private static bool TryResolveTarget(
+            MonoBehaviour candidate,
+            ICombatTarget possibleTarget,
+            out Transform resolvedRoot,
+            out IDamageable damageable,
+            out IHealthStatus healthStatus)
         {
-            TryEnableNavMeshAgent();
-            if (agent != null && agent.enabled && agent.isOnNavMesh)
+            resolvedRoot = candidate.transform;
+            damageable = null;
+            healthStatus = null;
+
+            // If the input/aim component lives on a child, use the highest parent that also
+            // represents the same combat target. This keeps movement and collider checks consistent.
+            for (Transform parent = candidate.transform.parent; parent != null; parent = parent.parent)
             {
-                agent.isStopped = false;
-                agent.SetDestination(targetComponent.transform.position);
-                return;
+                if (HasCombatTarget(parent))
+                    resolvedRoot = parent;
             }
 
-            Vector3 targetPosition = targetComponent.transform.position;
-            targetPosition.y = transform.position.y;
-            transform.position = Vector3.MoveTowards(transform.position, targetPosition, definition.MoveSpeed * Time.deltaTime);
+            MonoBehaviour[] descendants = resolvedRoot.GetComponentsInChildren<MonoBehaviour>(true);
+            FindHealthContracts(descendants, ref damageable, ref healthStatus);
+
+            // Health may intentionally be attached to a parent object that does not implement ICombatTarget.
+            for (Transform parent = resolvedRoot.parent; parent != null; parent = parent.parent)
+            {
+                FindHealthContracts(parent.GetComponents<MonoBehaviour>(), ref damageable, ref healthStatus);
+                if (damageable != null && healthStatus != null)
+                    break;
+            }
+
+            return damageable != null && healthStatus != null;
         }
 
-        private void TryEnableNavMeshAgent()
+        private static bool HasCombatTarget(Transform candidate)
         {
-            if (agent == null || agent.enabled || Time.time < nextNavMeshCheckTime)
+            MonoBehaviour[] components = candidate.GetComponents<MonoBehaviour>();
+            foreach (MonoBehaviour component in components)
+                if (component != null && component.isActiveAndEnabled && component is ICombatTarget)
+                    return true;
+            return false;
+        }
+
+        private static void FindHealthContracts(
+            MonoBehaviour[] components,
+            ref IDamageable damageable,
+            ref IHealthStatus healthStatus)
+        {
+            foreach (MonoBehaviour component in components)
+            {
+                if (component == null || !component.isActiveAndEnabled)
+                    continue;
+                if (damageable == null && component is IDamageable foundDamageable)
+                    damageable = foundDamageable;
+                if (healthStatus == null && component is IHealthStatus foundHealth)
+                    healthStatus = foundHealth;
+                if (damageable != null && healthStatus != null)
+                    return;
+            }
+        }
+
+        private void MoveTowardsTarget()
+        {
+            if (TryEnableNavMeshAgent())
+            {
+                agent.isStopped = false;
+                bool destinationMoved = (targetRoot.position - lastDestination).sqrMagnitude > 0.36f;
+                if (Time.time >= nextDestinationRefreshTime || destinationMoved || !agent.hasPath)
+                {
+                    nextDestinationRefreshTime = Time.time + Mathf.Max(0.05f, destinationRefreshInterval);
+                    if (agent.SetDestination(targetRoot.position))
+                        lastDestination = targetRoot.position;
+                }
+                return;
+            }
+
+            // No NavMesh: provide predictable direct pursuit, but don't walk through an obstacle.
+            Vector3 offset = targetRoot.position - transform.position;
+            offset.y = 0f;
+            if (offset.sqrMagnitude < 0.001f)
                 return;
 
+            Vector3 direction = offset.normalized;
+            float step = Mathf.Min(definition.MoveSpeed * Time.deltaTime,
+                Mathf.Max(0f, offset.magnitude - definition.AttackRange * 0.8f));
+            if (step <= 0f || IsFallbackMovementBlocked(direction, step + fallbackObstacleProbeDistance))
+                return;
+
+            transform.position += direction * step;
+        }
+
+        private bool TryEnableNavMeshAgent()
+        {
+            if (agent == null)
+                return false;
+
+            if (agent.enabled && agent.isOnNavMesh)
+                return true;
+
+            if (agent.enabled && !agent.isOnNavMesh)
+                agent.enabled = false;
+
+            if (Time.time < nextNavMeshCheckTime)
+                return false;
+
             nextNavMeshCheckTime = Time.time + 1f;
-            if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+            if (!NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+                return false;
+
+            // Put the root on the sampled point before enabling the agent; this avoids an
+            // enabled-but-unregistered agent when the generated prefab was slightly off the NavMesh.
+            transform.position = hit.position;
+            agent.enabled = true;
+            if (!agent.isOnNavMesh)
             {
-                agent.enabled = true;
-                agent.Warp(hit.position);
-                agent.speed = definition.MoveSpeed;
-                agent.stoppingDistance = Mathf.Max(0.2f, definition.AttackRange * 0.75f);
+                agent.enabled = false;
+                return false;
             }
+
+            agent.Warp(hit.position);
+            agent.speed = definition.MoveSpeed;
+            agent.stoppingDistance = Mathf.Max(0.2f, definition.AttackRange * 0.75f);
+            return true;
+        }
+
+        private bool IsFallbackMovementBlocked(Vector3 direction, float distance)
+        {
+            Vector3 origin = transform.position + Vector3.up;
+            if (!Physics.Raycast(origin, direction, out RaycastHit hit, distance, ~0, QueryTriggerInteraction.Ignore))
+                return false;
+
+            Transform hitTransform = hit.collider.transform;
+            if (hitTransform == transform || hitTransform.IsChildOf(transform))
+                return false;
+            if (targetRoot != null && (hitTransform == targetRoot || hitTransform.IsChildOf(targetRoot)))
+                return false;
+            return true;
         }
 
         private void TryAttack()
         {
-            if (definition.AttackDamage <= 0f || Time.time < nextAttackTime)
+            if (definition.AttackDamage <= 0f || Time.time < nextAttackTime || Time.time < nextAttackCheckTime)
                 return;
 
             Vector3 origin = transform.position + Vector3.up * 1.25f;
             Vector3 destination = combatTarget.AimPoint != null
                 ? combatTarget.AimPoint.position
-                : targetComponent.transform.position + Vector3.up;
+                : targetRoot.position + Vector3.up;
             Vector3 direction = destination - origin;
             float distance = direction.magnitude;
             if (distance <= 0.01f)
                 return;
 
-            if (Physics.Raycast(origin, direction.normalized, out RaycastHit hit, distance, ~0, QueryTriggerInteraction.Ignore))
+            if (!HasLineOfSight(origin, direction.normalized, distance))
             {
-                Transform hitTransform = hit.collider.transform;
-                if (hitTransform != targetComponent.transform && !hitTransform.IsChildOf(targetComponent.transform))
-                    return;
+                // Don't raycast every frame when a wall blocks the target.
+                nextAttackCheckTime = Time.time + 0.15f;
+                return;
             }
 
             nextAttackTime = Time.time + definition.AttackCooldown;
             targetDamageable.TakeDamage(definition.AttackDamage);
-            Debug.Log($"[{definition.DisplayName}] Hit {targetComponent.name} for {definition.AttackDamage} damage.", targetComponent);
+            Debug.Log($"[{definition.DisplayName}] Hit {targetRoot.name} for {definition.AttackDamage} damage.", targetRoot);
+        }
+
+        private bool HasLineOfSight(Vector3 origin, Vector3 direction, float distance)
+        {
+            int hitCount = Physics.RaycastNonAlloc(origin, direction, attackHits, distance, ~0,
+                QueryTriggerInteraction.Ignore);
+            float closestDistance = float.MaxValue;
+            Transform closestTransform = null;
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider collider = attackHits[i].collider;
+                if (collider == null)
+                    continue;
+
+                Transform hitTransform = collider.transform;
+                if (hitTransform == transform || hitTransform.IsChildOf(transform))
+                    continue;
+
+                if (attackHits[i].distance < closestDistance)
+                {
+                    closestDistance = attackHits[i].distance;
+                    closestTransform = hitTransform;
+                }
+            }
+
+            // If no collider is in the ray, treat the path as clear. This allows custom targets
+            // without colliders while still respecting walls and other blocking geometry.
+            if (closestTransform == null)
+                return true;
+
+            return targetRoot != null &&
+                   (closestTransform == targetRoot || closestTransform.IsChildOf(targetRoot));
         }
 
         private void FaceTarget(Vector3 flatOffset)
@@ -189,8 +346,35 @@ namespace IrisTrace.Runtime.Enemies
             if (agent != null && agent.enabled && agent.isOnNavMesh)
             {
                 agent.isStopped = true;
-                agent.ResetPath();
+                if (agent.hasPath)
+                    agent.ResetPath();
             }
+            nextDestinationRefreshTime = 0f;
+        }
+
+        private void ClearTarget()
+        {
+            targetComponent = null;
+            targetRoot = null;
+            combatTarget = null;
+            targetDamageable = null;
+            targetHealth = null;
+        }
+
+        private void OnDisable()
+        {
+            StopMovement();
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (definition == null)
+                return;
+
+            Gizmos.color = new Color(0.45f, 0.69f, 0.11f, 0.8f);
+            Gizmos.DrawWireSphere(transform.position, definition.DetectionRange);
+            Gizmos.color = new Color(0.85f, 0.25f, 0.18f, 0.9f);
+            Gizmos.DrawWireSphere(transform.position, definition.AttackRange);
         }
     }
 }
