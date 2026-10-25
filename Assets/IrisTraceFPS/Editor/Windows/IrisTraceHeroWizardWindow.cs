@@ -32,6 +32,11 @@ namespace IrisTrace.Editor.Windows
         private FloatField crouchTransitionDurationField;
         private FloatField sensitivityField;
         private FloatField fieldOfViewField;
+        private ObjectField firstPersonArmsPrefabField;
+        private Vector3Field firstPersonArmsPositionField;
+        private Vector3Field firstPersonArmsRotationField;
+        private Vector3Field firstPersonArmsScaleField;
+        private ObjectField weaponViewPrefabField;
         private FloatField weaponDamageField;
         private FloatField shotsPerSecondField;
         private IntegerField magazineSizeField;
@@ -110,6 +115,8 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildBasicsPanel());
             content.Add(BuildSection("MOVEMENT & CAMERA", "Configure movement speed, jump and optional crouching."));
             content.Add(BuildMovementPanel());
+            content.Add(BuildSection("FIRST-PERSON VIEWMODEL", "Weapon visuals are generated automatically. Hands are hidden unless you assign your own arms prefab."));
+            content.Add(BuildViewmodelPanel());
             content.Add(BuildSection("DEFAULT WEAPON", "Configure the generated hitscan weapon."));
             content.Add(BuildWeaponPanel());
             content.Add(BuildSection("AUDIO (OPTIONAL)", "Assign AudioClip assets. Empty fields are safely ignored."));
@@ -247,6 +254,35 @@ namespace IrisTrace.Editor.Windows
             return panel;
         }
 
+        private VisualElement BuildViewmodelPanel()
+        {
+            VisualElement panel = BuildPanel();
+            firstPersonArmsPrefabField = new ObjectField("Custom Arms / Hands Prefab (Optional)")
+            {
+                objectType = typeof(GameObject),
+                allowSceneObjects = false
+            };
+            firstPersonArmsPositionField = new Vector3Field("Custom Arms Local Position") { value = new Vector3(0f, -0.47f, 0.50f) };
+            firstPersonArmsRotationField = new Vector3Field("Custom Arms Local Rotation") { value = Vector3.zero };
+            firstPersonArmsScaleField = new Vector3Field("Custom Arms Local Scale") { value = new Vector3(0.78f, 0.78f, 0.78f) };
+            StyleField(firstPersonArmsPrefabField);
+            StyleField(firstPersonArmsPositionField);
+            StyleField(firstPersonArmsRotationField);
+            StyleField(firstPersonArmsScaleField);
+            panel.Add(firstPersonArmsPrefabField);
+            panel.Add(firstPersonArmsPositionField);
+            panel.Add(firstPersonArmsRotationField);
+            panel.Add(firstPersonArmsScaleField);
+
+            Label note = new Label("Hands are hidden by default. Assign your own arms prefab to show them; these offsets only apply to that custom prefab.");
+            note.style.color = IrisTraceTheme.SecondaryText;
+            note.style.fontSize = 10f;
+            note.style.whiteSpace = WhiteSpace.Normal;
+            note.style.marginTop = 4f;
+            panel.Add(note);
+            return panel;
+        }
+
         private VisualElement BuildWeaponPanel()
         {
             VisualElement panel = BuildPanel();
@@ -274,6 +310,14 @@ namespace IrisTrace.Editor.Windows
             panel.Add(reloadDurationField);
             panel.Add(weaponRangeField);
             panel.Add(weaponFireModeField);
+
+            weaponViewPrefabField = new ObjectField("Weapon Viewmodel Prefab (Optional)")
+            {
+                objectType = typeof(GameObject),
+                allowSceneObjects = false
+            };
+            StyleField(weaponViewPrefabField);
+            panel.Add(weaponViewPrefabField);
             return panel;
         }
 
@@ -595,6 +639,10 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "crouchTransitionDuration", crouchTransitionDurationField.value);
             SetFloat(serialized, "mouseSensitivity", sensitivityField.value);
             SetFloat(serialized, "cameraFieldOfView", fieldOfViewField.value);
+            SetObjectReference(serialized, "firstPersonArmsPrefab", firstPersonArmsPrefabField.value);
+            SetVector3(serialized, "firstPersonArmsLocalPosition", firstPersonArmsPositionField.value);
+            SetVector3(serialized, "firstPersonArmsLocalEuler", firstPersonArmsRotationField.value);
+            SetVector3(serialized, "firstPersonArmsLocalScale", firstPersonArmsScaleField.value);
             SetObjectReference(serialized, "walkFootstepClip", walkFootstepSoundField.value);
             SetObjectReference(serialized, "sprintFootstepClip", sprintFootstepSoundField.value);
             SetObjectReference(serialized, "crouchFootstepClip", crouchFootstepSoundField.value);
@@ -639,6 +687,7 @@ namespace IrisTrace.Editor.Windows
             SetObjectReference(weaponSerialized, "fireClip", weaponFireSoundField.value);
             SetObjectReference(weaponSerialized, "reloadClip", weaponReloadSoundField.value);
             SetObjectReference(weaponSerialized, "dryFireClip", weaponDryFireSoundField.value);
+            SetObjectReference(weaponSerialized, "viewModelPrefab", weaponViewPrefabField.value);
             weaponSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             string weaponPath = AssetDatabase.GenerateUniqueAssetPath($"{weaponFolder}/{safeName}_PrimaryWeapon.asset");
@@ -906,6 +955,13 @@ namespace IrisTrace.Editor.Windows
             SerializedProperty property = serialized.FindProperty(propertyName);
             if (property != null)
                 property.intValue = value;
+        }
+
+        private static void SetVector3(SerializedObject serialized, string propertyName, Vector3 value)
+        {
+            SerializedProperty property = serialized.FindProperty(propertyName);
+            if (property != null)
+                property.vector3Value = value;
         }
 
         private static void SetObjectReference(SerializedObject serialized, string propertyName, UnityEngine.Object value)

@@ -54,6 +54,12 @@ namespace IrisTrace.Runtime.Characters
         [SerializeField, Min(0.1f)] private float mouseSensitivity = 1f;
         [SerializeField, Range(60f, 120f)] private float cameraFieldOfView = 90f;
 
+        [Header("First-Person Viewmodel")]
+        [SerializeField] private GameObject firstPersonArmsPrefab;
+        [SerializeField] private Vector3 firstPersonArmsLocalPosition = new Vector3(0f, -0.47f, 0.50f);
+        [SerializeField] private Vector3 firstPersonArmsLocalEuler = Vector3.zero;
+        [SerializeField] private Vector3 firstPersonArmsLocalScale = new Vector3(0.78f, 0.78f, 0.78f);
+
         [Header("Input System bindings")]
         [SerializeField] private string moveForwardBinding = "<Keyboard>/w";
         [SerializeField] private string moveBackwardBinding = "<Keyboard>/s";
@@ -107,6 +113,17 @@ namespace IrisTrace.Runtime.Characters
         public float CrouchTransitionDuration => crouchTransitionDuration;
         public float MouseSensitivity => mouseSensitivity;
         public float CameraFieldOfView => cameraFieldOfView;
+        public GameObject FirstPersonArmsPrefab => firstPersonArmsPrefab;
+        public Vector3 FirstPersonArmsLocalPosition => firstPersonArmsLocalPosition == Vector3.zero ? new Vector3(0f, -0.47f, 0.50f) : firstPersonArmsLocalPosition;
+        public Vector3 FirstPersonArmsLocalEuler => firstPersonArmsLocalEuler;
+        public Vector3 FirstPersonArmsLocalScale => SafeScale(firstPersonArmsLocalScale);
+
+        private static Vector3 SafeScale(Vector3 value)
+        {
+            if (Mathf.Abs(value.x) < 0.001f || Mathf.Abs(value.y) < 0.001f || Mathf.Abs(value.z) < 0.001f)
+                return new Vector3(0.78f, 0.78f, 0.78f);
+            return value;
+        }
         public string MoveForwardBinding => moveForwardBinding;
         public string MoveBackwardBinding => moveBackwardBinding;
         public string MoveLeftBinding => moveLeftBinding;

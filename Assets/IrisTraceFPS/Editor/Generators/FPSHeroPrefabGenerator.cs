@@ -57,10 +57,50 @@ namespace IrisTrace.Editor.Generators
                 playerCamera.farClipPlane = 1000f;
                 cameraObject.AddComponent<AudioListener>();
 
+                // Procedural placeholder hands are intentionally disabled. Custom hands remain optional.
+                if (definition.FirstPersonArmsPrefab != null)
+                {
+                    Transform armsMount = new GameObject("ArmsMount").transform;
+                    armsMount.SetParent(cameraObject.transform, false);
+                    armsMount.localPosition = definition.FirstPersonArmsLocalPosition;
+                    armsMount.localRotation = Quaternion.Euler(definition.FirstPersonArmsLocalEuler);
+                    armsMount.localScale = definition.FirstPersonArmsLocalScale;
+
+                    GameObject armsInstance = PrefabUtility.InstantiatePrefab(definition.FirstPersonArmsPrefab) as GameObject;
+                    if (armsInstance == null)
+                        armsInstance = UnityEngine.Object.Instantiate(definition.FirstPersonArmsPrefab);
+                    armsInstance.name = definition.FirstPersonArmsPrefab.name;
+                    armsInstance.transform.SetParent(armsMount, false);
+                    armsInstance.transform.localPosition = Vector3.zero;
+                    armsInstance.transform.localRotation = Quaternion.identity;
+                    armsInstance.transform.localScale = Vector3.one;
+                }
+
                 GameObject weaponMount = new GameObject("WeaponMount");
                 weaponMount.transform.SetParent(cameraObject.transform, false);
-                weaponMount.transform.localPosition = new Vector3(0.22f, -0.2f, 0.45f);
-                weaponMount.transform.localRotation = Quaternion.identity;
+                weaponMount.transform.localPosition = weaponDefinition.ViewModelMountLocalPosition;
+                weaponMount.transform.localRotation = Quaternion.Euler(weaponDefinition.ViewModelMountLocalEuler);
+                weaponMount.transform.localScale = weaponDefinition.ViewModelMountLocalScale;
+
+                if (weaponDefinition.ViewModelPrefab != null)
+                {
+                    GameObject weaponVisual = PrefabUtility.InstantiatePrefab(weaponDefinition.ViewModelPrefab) as GameObject;
+                    if (weaponVisual == null)
+                        weaponVisual = UnityEngine.Object.Instantiate(weaponDefinition.ViewModelPrefab);
+                    weaponVisual.name = weaponDefinition.ViewModelPrefab.name;
+                    weaponVisual.transform.SetParent(weaponMount.transform, false);
+                    weaponVisual.transform.localPosition = weaponDefinition.ViewModelLocalPosition;
+                    weaponVisual.transform.localRotation = Quaternion.Euler(weaponDefinition.ViewModelLocalEuler);
+                    weaponVisual.transform.localScale = weaponDefinition.ViewModelLocalScale;
+                }
+                else
+                {
+                    EnsurePlaceholderMaterials();
+                    GameObject placeholderWeapon = BuildPlaceholderWeapon(weaponMount.transform);
+                    placeholderWeapon.transform.localPosition = weaponDefinition.ViewModelLocalPosition;
+                    placeholderWeapon.transform.localRotation = Quaternion.Euler(weaponDefinition.ViewModelLocalEuler);
+                    placeholderWeapon.transform.localScale = weaponDefinition.ViewModelLocalScale;
+                }
 
                 AudioSource weaponAudioSource = weaponMount.AddComponent<AudioSource>();
                 weaponAudioSource.playOnAwake = false;
@@ -159,6 +199,81 @@ namespace IrisTrace.Editor.Generators
                 default:
                     throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported built-in ability type.");
             }
+        }
+
+        private const string GeneratedMaterialsRoot = "Assets/IrisTraceFPS_Generated/Materials";
+        private static Material placeholderDarkMaterial;
+        private static Material placeholderAccentMaterial;
+        private static Material placeholderSleeveMaterial;
+        private static Material placeholderGloveMaterial;
+
+        private static void EnsurePlaceholderMaterials()
+        {
+            EnsureAssetFolder(GeneratedMaterialsRoot);
+            placeholderDarkMaterial = LoadOrCreateMaterial("IrisTrace_Viewmodel_Dark", new Color(0.12f, 0.13f, 0.15f, 1f));
+            placeholderAccentMaterial = LoadOrCreateMaterial("IrisTrace_Viewmodel_Accent", new Color(0.45f, 0.69f, 0.11f, 1f));
+            placeholderSleeveMaterial = LoadOrCreateMaterial("IrisTrace_Viewmodel_Sleeve", new Color(0.20f, 0.22f, 0.25f, 1f));
+            placeholderGloveMaterial = LoadOrCreateMaterial("IrisTrace_Viewmodel_Glove", new Color(0.07f, 0.08f, 0.09f, 1f));
+        }
+
+        private static Material LoadOrCreateMaterial(string materialName, Color color)
+        {
+            string path = GeneratedMaterialsRoot + "/" + materialName + ".mat";
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null)
+                return material;
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+            if (shader == null) shader = Shader.Find("Unlit/Color");
+            if (shader == null)
+                return null;
+
+            material = new Material(shader) { name = materialName };
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+            if (material.HasProperty("_Color")) material.SetColor("_Color", color);
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
+        private static GameObject BuildPlaceholderWeapon(Transform parent)
+        {
+            GameObject root = new GameObject("DefaultWeaponViewmodel");
+            root.transform.SetParent(parent, false);
+            root.transform.localPosition = Vector3.zero;
+            root.transform.localRotation = Quaternion.identity;
+            root.transform.localScale = Vector3.one;
+
+            CreateVisualPrimitive(PrimitiveType.Cube, "WeaponBody", root.transform,
+                new Vector3(0f, 0f, 0f), Vector3.zero, new Vector3(0.14f, 0.10f, 0.34f), placeholderDarkMaterial);
+            CreateVisualPrimitive(PrimitiveType.Cylinder, "Barrel", root.transform,
+                new Vector3(0f, 0f, 0.23f), new Vector3(90f, 0f, 0f), new Vector3(0.025f, 0.14f, 0.025f), placeholderDarkMaterial);
+            CreateVisualPrimitive(PrimitiveType.Cube, "Stock", root.transform,
+                new Vector3(0f, -0.005f, -0.21f), new Vector3(0f, 0f, 0f), new Vector3(0.15f, 0.085f, 0.12f), placeholderSleeveMaterial);
+            CreateVisualPrimitive(PrimitiveType.Cube, "Grip", root.transform,
+                new Vector3(0f, -0.085f, -0.035f), new Vector3(12f, 0f, 0f), new Vector3(0.065f, 0.13f, 0.075f), placeholderGloveMaterial);
+            CreateVisualPrimitive(PrimitiveType.Cube, "TopRail", root.transform,
+                new Vector3(0f, 0.064f, 0.015f), Vector3.zero, new Vector3(0.05f, 0.022f, 0.15f), placeholderAccentMaterial);
+            CreateVisualPrimitive(PrimitiveType.Cube, "Sight", root.transform,
+                new Vector3(0f, 0.086f, 0.085f), Vector3.zero, new Vector3(0.025f, 0.02f, 0.025f), placeholderDarkMaterial);
+            return root;
+        }
+
+        private static void CreateVisualPrimitive(PrimitiveType type, string objectName, Transform parent,
+            Vector3 localPosition, Vector3 localEuler, Vector3 localScale, Material material)
+        {
+            GameObject visual = GameObject.CreatePrimitive(type);
+            visual.name = objectName;
+            visual.transform.SetParent(parent, false);
+            visual.transform.localPosition = localPosition;
+            visual.transform.localRotation = Quaternion.Euler(localEuler);
+            visual.transform.localScale = localScale;
+            Collider collider = visual.GetComponent<Collider>();
+            if (collider != null)
+                UnityEngine.Object.DestroyImmediate(collider);
+            Renderer renderer = visual.GetComponent<Renderer>();
+            if (renderer != null && material != null)
+                renderer.sharedMaterial = material;
         }
 
         private static void DisableOtherMainCameras(Scene scene, Camera generatedCamera)

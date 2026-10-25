@@ -34,6 +34,13 @@ namespace IrisTrace.Editor.Windows
         private ObjectField fireClipField;
         private ObjectField reloadClipField;
         private ObjectField dryFireClipField;
+        private ObjectField viewModelPrefabField;
+        private Vector3Field viewModelMountPositionField;
+        private Vector3Field viewModelMountRotationField;
+        private Vector3Field viewModelMountScaleField;
+        private Vector3Field viewModelPositionField;
+        private Vector3Field viewModelRotationField;
+        private Vector3Field viewModelScaleField;
 
         [MenuItem("Window/IrisTrace FPS/Weapon Library")]
         public static void Open()
@@ -215,6 +222,13 @@ namespace IrisTrace.Editor.Windows
             fireClipField = new ObjectField("Fire Sound") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.FireClip };
             reloadClipField = new ObjectField("Reload Sound") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.ReloadClip };
             dryFireClipField = new ObjectField("Dry-Fire Sound (Optional)") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.DryFireClip };
+            viewModelPrefabField = new ObjectField("First-Person Viewmodel Prefab") { objectType = typeof(GameObject), allowSceneObjects = false, value = selected.ViewModelPrefab };
+            viewModelMountPositionField = new Vector3Field("Weapon Mount Position (Camera Local)") { value = selected.ViewModelMountLocalPosition };
+            viewModelMountRotationField = new Vector3Field("Weapon Mount Rotation") { value = selected.ViewModelMountLocalEuler };
+            viewModelMountScaleField = new Vector3Field("Weapon Mount Scale") { value = selected.ViewModelMountLocalScale };
+            viewModelPositionField = new Vector3Field("Model Local Position (Inside Mount)") { value = selected.ViewModelLocalPosition };
+            viewModelRotationField = new Vector3Field("Viewmodel Local Rotation") { value = selected.ViewModelLocalEuler };
+            viewModelScaleField = new Vector3Field("Viewmodel Local Scale") { value = selected.ViewModelLocalScale };
 
             AddField(panel, nameField);
             AddField(panel, damageField);
@@ -227,6 +241,20 @@ namespace IrisTrace.Editor.Windows
             AddField(panel, fireClipField);
             AddField(panel, reloadClipField);
             AddField(panel, dryFireClipField);
+            AddField(panel, viewModelPrefabField);
+            AddField(panel, viewModelMountPositionField);
+            AddField(panel, viewModelMountRotationField);
+            AddField(panel, viewModelMountScaleField);
+            AddField(panel, viewModelPositionField);
+            AddField(panel, viewModelRotationField);
+            AddField(panel, viewModelScaleField);
+
+            Label viewmodelNote = new Label("Mount settings position and scale the whole weapon in camera space. Model Local settings offset the assigned prefab or the built-in placeholder inside the mount.");
+            viewmodelNote.style.color = IrisTraceTheme.SecondaryText;
+            viewmodelNote.style.fontSize = 10f;
+            viewmodelNote.style.whiteSpace = WhiteSpace.Normal;
+            viewmodelNote.style.marginBottom = 8f;
+            panel.Add(viewmodelNote);
 
             VisualElement actions = new VisualElement();
             actions.style.flexDirection = FlexDirection.Row;
@@ -312,6 +340,14 @@ namespace IrisTrace.Editor.Windows
             if (reloadClip != null) reloadClip.objectReferenceValue = reloadClipField.value;
             SerializedProperty dryFireClip = serialized.FindProperty("dryFireClip");
             if (dryFireClip != null) dryFireClip.objectReferenceValue = dryFireClipField.value;
+            SerializedProperty viewModelPrefab = serialized.FindProperty("viewModelPrefab");
+            if (viewModelPrefab != null) viewModelPrefab.objectReferenceValue = viewModelPrefabField.value;
+            SetVector3(serialized, "viewModelMountLocalPosition", viewModelMountPositionField.value);
+            SetVector3(serialized, "viewModelMountLocalEuler", viewModelMountRotationField.value);
+            SetVector3(serialized, "viewModelMountLocalScale", viewModelMountScaleField.value);
+            SetVector3(serialized, "viewModelLocalPosition", viewModelPositionField.value);
+            SetVector3(serialized, "viewModelLocalEuler", viewModelRotationField.value);
+            SetVector3(serialized, "viewModelLocalScale", viewModelScaleField.value);
             serialized.ApplyModifiedProperties();
 
             string assetPath = AssetDatabase.GetAssetPath(selected);
@@ -472,6 +508,12 @@ namespace IrisTrace.Editor.Windows
             element.style.borderRightColor = color;
             element.style.borderBottomColor = color;
             element.style.borderLeftColor = color;
+        }
+
+        private static void SetVector3(SerializedObject serialized, string propertyName, Vector3 value)
+        {
+            SerializedProperty property = serialized.FindProperty(propertyName);
+            if (property != null) property.vector3Value = value;
         }
 
         private static void SetString(SerializedObject serialized, string propertyName, string value)

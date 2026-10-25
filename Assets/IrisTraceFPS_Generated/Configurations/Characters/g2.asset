@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2b179288611162c469be5ccd5a55d2a4, type: 3}
-  m_Name: dws
+  m_Name: g2
   m_EditorClassIdentifier: IrisTrace.Runtime.Characters::IrisTrace.Runtime.Characters.CharacterDefinition
-  id: ae841e2b62874ee99f7f6ba291776cba
+  id: d9728dc0115445b7a8abb705b9dbaf1c
   primaryWeaponId: 
-  displayName: dws
+  displayName: g2
   portraitIcon: {fileID: 0}
   maxHealth: 100
   walkSpeed: 5
@@ -42,6 +42,10 @@ MonoBehaviour:
   crouchFootstepInterval: 0.62
   mouseSensitivity: 1
   cameraFieldOfView: 90
+  firstPersonArmsPrefab: {fileID: 0}
+  firstPersonArmsLocalPosition: {x: 0, y: -0.34, z: 0.38}
+  firstPersonArmsLocalEuler: {x: 0, y: 0, z: 0}
+  firstPersonArmsLocalScale: {x: 1, y: 1, z: 1}
   moveForwardBinding: <Keyboard>/w
   moveBackwardBinding: <Keyboard>/s
   moveLeftBinding: <Keyboard>/a
@@ -51,7 +55,7 @@ MonoBehaviour:
   fireBinding: <Mouse>/leftButton
   reloadBinding: <Keyboard>/r
   ability1Type: 1
-  ability1Binding: <Keyboard>/leftShift
+  ability1Binding: <Keyboard>/q
   ability1Cooldown: 5
   ability1Value: 6
   ability2Type: 2
