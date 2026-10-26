@@ -34,6 +34,7 @@ namespace IrisTrace.Runtime.Enemies
             CacheComponents();
             currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
             UpdateVisuals();
+            EnsureWorldHealthBar();
             if (IsDead)
                 DisableCombat();
         }
@@ -57,6 +58,12 @@ namespace IrisTrace.Runtime.Enemies
             {
                 Debug.Log($"Enemy '{name}': {Mathf.CeilToInt(currentHealth)} HP remaining.", this);
             }
+        }
+
+        private void EnsureWorldHealthBar()
+        {
+            if (GetComponent<EnemyWorldHealthBar>() == null)
+                gameObject.AddComponent<EnemyWorldHealthBar>();
         }
 
         private void CacheComponents()

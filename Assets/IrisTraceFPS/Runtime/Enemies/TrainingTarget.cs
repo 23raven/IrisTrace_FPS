@@ -31,6 +31,7 @@ namespace IrisTrace.Runtime.Enemies
             CacheComponents();
             currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
             UpdateVisuals();
+            EnsureWorldHealthBar();
             if (IsDead)
                 DisableTargetColliders();
         }
@@ -62,6 +63,12 @@ namespace IrisTrace.Runtime.Enemies
             foreach (Collider targetCollider in targetColliders)
                 if (targetCollider != null) targetCollider.enabled = true;
             UpdateVisuals();
+        }
+
+        private void EnsureWorldHealthBar()
+        {
+            if (GetComponent<EnemyWorldHealthBar>() == null)
+                gameObject.AddComponent<EnemyWorldHealthBar>();
         }
 
         private void CacheComponents()

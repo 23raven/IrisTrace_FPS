@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2b179288611162c469be5ccd5a55d2a4, type: 3}
-  m_Name: g2
+  m_Name: codey
   m_EditorClassIdentifier: IrisTrace.Runtime.Characters::IrisTrace.Runtime.Characters.CharacterDefinition
-  id: d9728dc0115445b7a8abb705b9dbaf1c
+  id: 3034721c185044beabb96637f6d6dc6c
   primaryWeaponId: 
-  displayName: g2
+  displayName: codey
   portraitIcon: {fileID: 0}
   maxHealth: 100
   walkSpeed: 5
@@ -43,9 +43,9 @@ MonoBehaviour:
   mouseSensitivity: 1
   cameraFieldOfView: 90
   firstPersonArmsPrefab: {fileID: 0}
-  firstPersonArmsLocalPosition: {x: 0, y: -0.34, z: 0.38}
+  firstPersonArmsLocalPosition: {x: 0, y: -0.47, z: 0.5}
   firstPersonArmsLocalEuler: {x: 0, y: 0, z: 0}
-  firstPersonArmsLocalScale: {x: 1, y: 1, z: 1}
+  firstPersonArmsLocalScale: {x: 0.78, y: 0.78, z: 0.78}
   moveForwardBinding: <Keyboard>/w
   moveBackwardBinding: <Keyboard>/s
   moveLeftBinding: <Keyboard>/a

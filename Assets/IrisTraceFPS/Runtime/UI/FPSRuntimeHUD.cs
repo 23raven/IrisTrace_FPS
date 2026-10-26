@@ -13,6 +13,10 @@ namespace IrisTrace.Runtime.UI
     {
         private IHealthStatus health;
         private IWeaponTelemetry weapon;
+        private IHitFeedbackSource hitFeedback;
+        private bool hitFeedbackSubscribed;
+        private float hitMarkerRemaining;
+        private const float HitMarkerDuration = 0.16f;
         private IAbilitySlotProvider abilitySlots;
         private ICharacterAbility ability1;
         private ICharacterAbility ability2;
@@ -32,6 +36,23 @@ namespace IrisTrace.Runtime.UI
             FindTelemetry();
         }
 
+        private void OnEnable()
+        {
+            FindTelemetry();
+            SubscribeHitFeedback();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeHitFeedback();
+        }
+
+        private void Update()
+        {
+            if (hitMarkerRemaining > 0f)
+                hitMarkerRemaining = Mathf.Max(0f, hitMarkerRemaining - Time.unscaledDeltaTime);
+        }
+
         private void FindTelemetry()
         {
             MonoBehaviour[] behaviours = GetComponentsInChildren<MonoBehaviour>(true);
@@ -41,18 +62,44 @@ namespace IrisTrace.Runtime.UI
                     health = healthStatus;
                 if (weapon == null && behaviour is IWeaponTelemetry weaponTelemetry)
                     weapon = weaponTelemetry;
+                if (hitFeedback == null && behaviour is IHitFeedbackSource hitFeedbackSource)
+                    hitFeedback = hitFeedbackSource;
                 if (abilitySlots == null && behaviour is IAbilitySlotProvider slotProvider)
                     abilitySlots = slotProvider;
-                if (health != null && weapon != null && abilitySlots != null)
+                if (health != null && weapon != null && abilitySlots != null && hitFeedback != null)
                     break;
             }
 
             RefreshAbilitySlots();
+            SubscribeHitFeedback();
+        }
+
+        private void SubscribeHitFeedback()
+        {
+            if (hitFeedback == null || hitFeedbackSubscribed)
+                return;
+
+            hitFeedback.HitConfirmed += HandleHitConfirmed;
+            hitFeedbackSubscribed = true;
+        }
+
+        private void UnsubscribeHitFeedback()
+        {
+            if (hitFeedback == null || !hitFeedbackSubscribed)
+                return;
+
+            hitFeedback.HitConfirmed -= HandleHitConfirmed;
+            hitFeedbackSubscribed = false;
+        }
+
+        private void HandleHitConfirmed()
+        {
+            hitMarkerRemaining = HitMarkerDuration;
         }
 
         private void OnGUI()
         {
-            if (health == null || weapon == null || abilitySlots == null)
+            if (health == null || weapon == null || abilitySlots == null || hitFeedback == null)
                 FindTelemetry();
 
             // Ability components can finish their Awake after this HUD's Awake. Refresh the slot
@@ -96,6 +143,7 @@ namespace IrisTrace.Runtime.UI
 
             DrawAbilitySlots(y, panelWidth, margin);
             DrawCrosshair();
+            DrawHitMarker();
             GUI.color = previousColor;
         }
 
@@ -165,6 +213,36 @@ namespace IrisTrace.Runtime.UI
                 case "space": return "SPACE";
                 default: return control.ToUpperInvariant();
             }
+        }
+
+
+        private void DrawHitMarker()
+        {
+            if (hitMarkerRemaining <= 0f)
+                return;
+
+            float alpha = Mathf.Clamp01(hitMarkerRemaining / HitMarkerDuration);
+            float spread = Mathf.Lerp(7f, 10f, 1f - alpha);
+            float cx = Screen.width * 0.5f;
+            float cy = Screen.height * 0.5f;
+            Color previousColor = GUI.color;
+            GUI.color = new Color(MainText.r, MainText.g, MainText.b, alpha);
+
+            DrawMarkerSegment(new Vector2(cx - spread, cy - spread), -45f);
+            DrawMarkerSegment(new Vector2(cx + spread, cy - spread), 45f);
+            DrawMarkerSegment(new Vector2(cx - spread, cy + spread), 45f);
+            DrawMarkerSegment(new Vector2(cx + spread, cy + spread), -45f);
+
+            GUI.color = previousColor;
+        }
+
+        private static void DrawMarkerSegment(Vector2 center, float angle)
+        {
+            Rect segment = new Rect(center.x - 4.5f, center.y - 1f, 9f, 2f);
+            Matrix4x4 previousMatrix = GUI.matrix;
+            GUIUtility.RotateAroundPivot(angle, center);
+            GUI.DrawTexture(segment, Texture2D.whiteTexture);
+            GUI.matrix = previousMatrix;
         }
 
         private void EnsureStyles()

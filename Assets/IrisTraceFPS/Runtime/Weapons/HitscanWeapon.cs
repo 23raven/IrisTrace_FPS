@@ -7,7 +7,7 @@ namespace IrisTrace.Runtime.Weapons
 {
     /// <summary>Minimal configurable raycast weapon with a magazine and timed reload.</summary>
     [DisallowMultipleComponent]
-    public sealed class HitscanWeapon : MonoBehaviour, IWeapon, IWeaponTelemetry
+    public sealed class HitscanWeapon : MonoBehaviour, IWeapon, IWeaponTelemetry, IHitFeedbackSource
     {
         [SerializeField] private WeaponDefinition definition;
         [SerializeField] private Camera viewCamera;
@@ -31,6 +31,7 @@ namespace IrisTrace.Runtime.Weapons
         public event Action DryFired;
         public event Action ReloadStarted;
         public event Action ReloadCompleted;
+        public event Action HitConfirmed;
 
         public void Configure(WeaponDefinition weaponDefinition, Camera cameraForShots, Transform weaponOwnerRoot = null)
         {
@@ -151,6 +152,7 @@ namespace IrisTrace.Runtime.Weapons
                 return;
 
             damageable.TakeDamage(definition.Damage);
+            HitConfirmed?.Invoke();
             string targetName = damageable is Component targetComponent
                 ? targetComponent.gameObject.name
                 : closestHit.collider.gameObject.name;
