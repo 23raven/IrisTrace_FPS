@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using IrisTrace.Runtime.Core;
 
@@ -25,6 +26,9 @@ namespace IrisTrace.Runtime.Abilities
         public ICharacterAbility AbilitySlot2 => ability2;
         public string AbilitySlot1Binding => ability1Binding;
         public string AbilitySlot2Binding => ability2Binding;
+
+        /// <summary>Raised after an ability successfully starts. Slot is 1 or 2.</summary>
+        public event Action<int, string> AbilityActivated;
 
         public void Configure(MonoBehaviour inputBehaviour, MonoBehaviour firstAbility, MonoBehaviour secondAbility)
         {
@@ -60,20 +64,23 @@ namespace IrisTrace.Runtime.Abilities
                 return;
             }
 
-            HandleSlot(ability1, input.Ability1Pressed, holdInput != null && holdInput.Ability1Held);
-            HandleSlot(ability2, input.Ability2Pressed, holdInput != null && holdInput.Ability2Held);
+            HandleSlot(1, ability1, input.Ability1Pressed, holdInput != null && holdInput.Ability1Held);
+            HandleSlot(2, ability2, input.Ability2Pressed, holdInput != null && holdInput.Ability2Held);
         }
 
-        private static void HandleSlot(ICharacterAbility ability, bool pressed, bool held)
+        private void HandleSlot(int slot, ICharacterAbility ability, bool pressed, bool held)
         {
             if (ability is IHoldCharacterAbility holdAbility)
             {
+                bool wasActive = holdAbility.IsActive;
                 holdAbility.SetInputHeld(held);
+                if (!wasActive && holdAbility.IsActive)
+                    AbilityActivated?.Invoke(slot, ability.AbilityName);
                 return;
             }
 
-            if (pressed && ability != null)
-                ability.TryActivate();
+            if (pressed && ability != null && ability.TryActivate())
+                AbilityActivated?.Invoke(slot, ability.AbilityName);
         }
 
         private void ReleaseHeldAbilities()
@@ -92,7 +99,11 @@ namespace IrisTrace.Runtime.Abilities
             ICharacterAbility ability = slot == 1 ? ability1 : slot == 2 ? ability2 : null;
             if (ability == null || ability is IHoldCharacterAbility)
                 return false;
-            return ability.TryActivate();
+
+            bool activated = ability.TryActivate();
+            if (activated)
+                AbilityActivated?.Invoke(slot, ability.AbilityName);
+            return activated;
         }
 
         private static string SafeBinding(string value, string fallback)

@@ -108,6 +108,11 @@ namespace IrisTrace.Editor.Generators
                 weaponAudioSource.spatialBlend = 0f;
                 HitscanWeapon weapon = weaponMount.AddComponent<HitscanWeapon>();
                 weapon.Configure(weaponDefinition, playerCamera, buildRoot.transform);
+
+                // Procedural recoil/reload feedback animates the weapon mount only; aiming remains camera-driven.
+                WeaponViewmodelMotion viewmodelMotion = weaponMount.AddComponent<WeaponViewmodelMotion>();
+                viewmodelMotion.Configure(weaponDefinition, weapon);
+
                 WeaponAudioController weaponAudio = weaponMount.AddComponent<WeaponAudioController>();
                 weaponAudio.Configure(weaponDefinition, weapon, weaponAudioSource);
 
@@ -134,6 +139,10 @@ namespace IrisTrace.Editor.Generators
                 AbilityInputHandler abilityInput = buildRoot.AddComponent<AbilityInputHandler>();
                 abilityInput.Configure(inputReader, ability1, ability2,
                     definition.Ability1Binding, definition.Ability2Binding);
+
+                // Visual ability feedback is optional and can be customized on the generated prefab.
+                AbilityActivationFeedback abilityFeedback = buildRoot.AddComponent<AbilityActivationFeedback>();
+                abilityFeedback.Configure(abilityInput);
 
                 // The HUD reads telemetry interfaces and does not depend on concrete weapon classes.
                 buildRoot.AddComponent<FPSRuntimeHUD>();

@@ -41,6 +41,21 @@ namespace IrisTrace.Editor.Windows
         private Vector3Field viewModelPositionField;
         private Vector3Field viewModelRotationField;
         private Vector3Field viewModelScaleField;
+        private Vector3Field recoilPositionField;
+        private Vector3Field recoilEulerField;
+        private FloatField recoilRecoverySpeedField;
+        private Vector3Field reloadDipPositionField;
+        private Vector3Field reloadDipEulerField;
+        private FloatField reloadMotionSpeedField;
+        private Toggle lookSwayEnabledField;
+        private Vector3Field lookSwayPositionField;
+        private Vector3Field lookSwayRotationField;
+        private FloatField lookSwaySmoothField;
+        private Toggle movementBobEnabledField;
+        private Vector3Field movementBobPositionField;
+        private Vector3Field movementBobRotationField;
+        private FloatField movementBobFrequencyField;
+        private FloatField movementBobSmoothField;
 
         [MenuItem("Window/IrisTrace FPS/Weapon Library")]
         public static void Open()
@@ -229,6 +244,21 @@ namespace IrisTrace.Editor.Windows
             viewModelPositionField = new Vector3Field("Model Local Position (Inside Mount)") { value = selected.ViewModelLocalPosition };
             viewModelRotationField = new Vector3Field("Viewmodel Local Rotation") { value = selected.ViewModelLocalEuler };
             viewModelScaleField = new Vector3Field("Viewmodel Local Scale") { value = selected.ViewModelLocalScale };
+            recoilPositionField = new Vector3Field("Shot Recoil Position") { value = selected.RecoilLocalPosition };
+            recoilEulerField = new Vector3Field("Shot Recoil Rotation") { value = selected.RecoilLocalEuler };
+            recoilRecoverySpeedField = new FloatField("Recoil Recovery Speed") { value = selected.RecoilRecoverySpeed };
+            reloadDipPositionField = new Vector3Field("Reload Dip Position") { value = selected.ReloadDipLocalPosition };
+            reloadDipEulerField = new Vector3Field("Reload Dip Rotation") { value = selected.ReloadDipLocalEuler };
+            reloadMotionSpeedField = new FloatField("Reload Motion Speed") { value = selected.ReloadMotionSpeed };
+            lookSwayEnabledField = new Toggle("Enable Look Sway") { value = selected.EnableLookSway };
+            lookSwayPositionField = new Vector3Field("Look Sway Position Amount") { value = selected.LookSwayPositionAmount };
+            lookSwayRotationField = new Vector3Field("Look Sway Rotation Amount") { value = selected.LookSwayRotationAmount };
+            lookSwaySmoothField = new FloatField("Look Sway Smoothness") { value = selected.LookSwaySmooth };
+            movementBobEnabledField = new Toggle("Enable Movement Bob") { value = selected.EnableMovementBobbing };
+            movementBobPositionField = new Vector3Field("Movement Bob Position Amount") { value = selected.MovementBobPositionAmount };
+            movementBobRotationField = new Vector3Field("Movement Bob Rotation Amount") { value = selected.MovementBobRotationAmount };
+            movementBobFrequencyField = new FloatField("Movement Bob Frequency") { value = selected.MovementBobFrequency };
+            movementBobSmoothField = new FloatField("Movement Bob Smoothness") { value = selected.MovementBobSmooth };
 
             AddField(panel, nameField);
             AddField(panel, damageField);
@@ -249,7 +279,30 @@ namespace IrisTrace.Editor.Windows
             AddField(panel, viewModelRotationField);
             AddField(panel, viewModelScaleField);
 
-            Label viewmodelNote = new Label("Mount settings position and scale the whole weapon in camera space. Model Local settings offset the assigned prefab or the built-in placeholder inside the mount.");
+            Foldout feedbackFoldout = new Foldout { text = "Recoil & Reload Feedback", value = false };
+            feedbackFoldout.style.marginTop = 6f;
+            AddField(feedbackFoldout, recoilPositionField);
+            AddField(feedbackFoldout, recoilEulerField);
+            AddField(feedbackFoldout, recoilRecoverySpeedField);
+            AddField(feedbackFoldout, reloadDipPositionField);
+            AddField(feedbackFoldout, reloadDipEulerField);
+            AddField(feedbackFoldout, reloadMotionSpeedField);
+            panel.Add(feedbackFoldout);
+
+            Foldout motionFoldout = new Foldout { text = "Look Sway & Movement Bob", value = false };
+            motionFoldout.style.marginTop = 6f;
+            AddField(motionFoldout, lookSwayEnabledField);
+            AddField(motionFoldout, lookSwayPositionField);
+            AddField(motionFoldout, lookSwayRotationField);
+            AddField(motionFoldout, lookSwaySmoothField);
+            AddField(motionFoldout, movementBobEnabledField);
+            AddField(motionFoldout, movementBobPositionField);
+            AddField(motionFoldout, movementBobRotationField);
+            AddField(motionFoldout, movementBobFrequencyField);
+            AddField(motionFoldout, movementBobSmoothField);
+            panel.Add(motionFoldout);
+
+            Label viewmodelNote = new Label("Mount settings position and scale the whole weapon in camera space. Recoil, reload dip, look sway and movement bob animate the weapon only; they never change camera aim or hitscan direction.");
             viewmodelNote.style.color = IrisTraceTheme.SecondaryText;
             viewmodelNote.style.fontSize = 10f;
             viewmodelNote.style.whiteSpace = WhiteSpace.Normal;
@@ -348,6 +401,23 @@ namespace IrisTrace.Editor.Windows
             SetVector3(serialized, "viewModelLocalPosition", viewModelPositionField.value);
             SetVector3(serialized, "viewModelLocalEuler", viewModelRotationField.value);
             SetVector3(serialized, "viewModelLocalScale", viewModelScaleField.value);
+            SetVector3(serialized, "recoilLocalPosition", recoilPositionField.value);
+            SetVector3(serialized, "recoilLocalEuler", recoilEulerField.value);
+            SetFloat(serialized, "recoilRecoverySpeed", Mathf.Max(0.1f, recoilRecoverySpeedField.value));
+            SetVector3(serialized, "reloadDipLocalPosition", reloadDipPositionField.value);
+            SetVector3(serialized, "reloadDipLocalEuler", reloadDipEulerField.value);
+            SetFloat(serialized, "reloadMotionSpeed", Mathf.Max(0.1f, reloadMotionSpeedField.value));
+            SerializedProperty lookSwayEnabled = serialized.FindProperty("enableLookSway");
+            if (lookSwayEnabled != null) lookSwayEnabled.boolValue = lookSwayEnabledField.value;
+            SetVector3(serialized, "lookSwayPositionAmount", lookSwayPositionField.value);
+            SetVector3(serialized, "lookSwayRotationAmount", lookSwayRotationField.value);
+            SetFloat(serialized, "lookSwaySmooth", Mathf.Max(0.1f, lookSwaySmoothField.value));
+            SerializedProperty movementBobEnabled = serialized.FindProperty("enableMovementBobbing");
+            if (movementBobEnabled != null) movementBobEnabled.boolValue = movementBobEnabledField.value;
+            SetVector3(serialized, "movementBobPositionAmount", movementBobPositionField.value);
+            SetVector3(serialized, "movementBobRotationAmount", movementBobRotationField.value);
+            SetFloat(serialized, "movementBobFrequency", Mathf.Max(0.1f, movementBobFrequencyField.value));
+            SetFloat(serialized, "movementBobSmooth", Mathf.Max(0.1f, movementBobSmoothField.value));
             serialized.ApplyModifiedProperties();
 
             string assetPath = AssetDatabase.GetAssetPath(selected);
