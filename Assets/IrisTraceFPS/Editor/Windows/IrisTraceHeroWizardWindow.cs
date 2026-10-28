@@ -15,6 +15,8 @@ namespace IrisTrace.Editor.Windows
 {
     public sealed class IrisTraceHeroWizardWindow : EditorWindow
     {
+        private bool isEmbeddedView;
+
         private TextField displayNameField;
         private FloatField maxHealthField;
         private FloatField walkSpeedField;
@@ -80,9 +82,7 @@ namespace IrisTrace.Editor.Windows
         [MenuItem("Window/IrisTrace FPS/Create FPS Hero")]
         public static void Open()
         {
-            IrisTraceHeroWizardWindow window = GetWindow<IrisTraceHeroWizardWindow>("Create FPS Hero");
-            window.minSize = new Vector2(430f, 650f);
-            window.Show();
+            IrisTraceWindow.OpenPage("Create FPS Hero");
         }
 
         private void OnDisable()
@@ -92,16 +92,29 @@ namespace IrisTrace.Editor.Windows
 
         public void CreateGUI()
         {
+            BuildEmbeddedContent(rootVisualElement);
+        }
+
+        public VisualElement CreateEmbeddedView()
+        {
+            isEmbeddedView = true;
+            VisualElement embeddedRoot = new VisualElement();
+            BuildEmbeddedContent(embeddedRoot);
+            return embeddedRoot;
+        }
+
+        private void BuildEmbeddedContent(VisualElement root)
+        {
             CancelBindingCapture(true);
-            rootVisualElement.Clear();
-            rootVisualElement.style.flexGrow = 1f;
-            rootVisualElement.style.backgroundColor = IrisTraceTheme.Background;
+            root.Clear();
+            root.style.flexGrow = 1f;
+            root.style.backgroundColor = IrisTraceTheme.Background;
 
             ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.style.flexGrow = 1f;
             scroll.style.backgroundColor = IrisTraceTheme.Background;
             scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-            rootVisualElement.Add(scroll);
+            root.Add(scroll);
 
             VisualElement content = new VisualElement();
             content.style.paddingLeft = 20f;
@@ -126,6 +139,7 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildSection("DEFAULT CONTROLS", "Movement, jump, crouch, fire and reload. Sprint is a selectable hold-to-activate ability."));
             content.Add(BuildBindingsPanel());
             content.Add(BuildFooterActions());
+        
         }
 
         private VisualElement BuildHeader()
@@ -709,7 +723,8 @@ namespace IrisTrace.Editor.Windows
 
             EditorUtility.DisplayDialog("Hero Generated",
                 $"'{definition.DisplayName}' was saved as a prefab and added to the active scene at (0, 0, 0).\n\nMovement, camera, health, weapon, reload, and selected abilities are ready.", "OK");
-            Close();
+            if (!isEmbeddedView)
+                Close();
         }
 
         private bool ValidateInput()

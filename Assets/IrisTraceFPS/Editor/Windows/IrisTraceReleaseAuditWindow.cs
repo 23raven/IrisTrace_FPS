@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace IrisTrace.Editor.Windows
 {
@@ -44,13 +45,25 @@ namespace IrisTrace.Editor.Windows
         [MenuItem("Window/IrisTrace FPS/Release Audit")]
         public static void Open()
         {
-            IrisTraceReleaseAuditWindow window = GetWindow<IrisTraceReleaseAuditWindow>();
-            window.titleContent = new GUIContent("IrisTrace Audit");
-            window.minSize = new Vector2(440f, 440f);
-            window.Show();
+            IrisTraceWindow.OpenPage("Release Audit");
         }
 
         private void OnGUI()
+        {
+            DrawAuditGUI();
+        }
+
+        public VisualElement CreateEmbeddedView()
+        {
+            VisualElement root = new VisualElement();
+            root.style.flexGrow = 1f;
+            IMGUIContainer imgui = new IMGUIContainer(DrawAuditGUI);
+            imgui.style.flexGrow = 1f;
+            root.Add(imgui);
+            return root;
+        }
+
+        private void DrawAuditGUI()
         {
             EditorGUILayout.Space(8f);
             EditorGUILayout.LabelField("IrisTrace FPS", EditorStyles.boldLabel);
@@ -110,6 +123,7 @@ namespace IrisTrace.Editor.Windows
             if (GUILayout.Button("Project Validation"))
                 TryOpenMenu("Window/IrisTrace FPS/Project Validation");
             EditorGUILayout.EndHorizontal();
+        
         }
 
         private void RunAudit()

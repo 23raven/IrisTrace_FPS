@@ -38,16 +38,26 @@ namespace IrisTrace.Editor.Windows
         [MenuItem("Window/IrisTrace FPS/Project Validation")]
         public static void Open()
         {
-            IrisTraceProjectValidationWindow window = GetWindow<IrisTraceProjectValidationWindow>("Project Validation");
-            window.minSize = new Vector2(420f, 520f);
-            window.Show();
+            IrisTraceWindow.OpenPage("Project Validation");
         }
 
         public void CreateGUI()
         {
-            rootVisualElement.Clear();
-            rootVisualElement.style.flexGrow = 1f;
-            rootVisualElement.style.backgroundColor = IrisTraceTheme.Background;
+            BuildEmbeddedContent(rootVisualElement);
+        }
+
+        public VisualElement CreateEmbeddedView()
+        {
+            VisualElement embeddedRoot = new VisualElement();
+            BuildEmbeddedContent(embeddedRoot);
+            return embeddedRoot;
+        }
+
+        private void BuildEmbeddedContent(VisualElement root)
+        {
+            root.Clear();
+            root.style.flexGrow = 1f;
+            root.style.backgroundColor = IrisTraceTheme.Background;
 
             ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.style.flexGrow = 1f;
@@ -56,7 +66,7 @@ namespace IrisTrace.Editor.Windows
             scroll.style.paddingTop = 14f;
             scroll.style.paddingBottom = 16f;
             scroll.style.backgroundColor = IrisTraceTheme.Background;
-            rootVisualElement.Add(scroll);
+            root.Add(scroll);
 
             Label title = new Label("Project Validation");
             title.style.color = IrisTraceTheme.PrimaryText;
@@ -91,6 +101,7 @@ namespace IrisTrace.Editor.Windows
             resultsContainer = new VisualElement();
             scroll.Add(resultsContainer);
             DrawResults();
+        
         }
 
         private void RunChecks()

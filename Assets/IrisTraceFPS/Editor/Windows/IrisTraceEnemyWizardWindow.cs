@@ -11,6 +11,8 @@ namespace IrisTrace.Editor.Windows
 {
     public sealed class IrisTraceEnemyWizardWindow : EditorWindow
     {
+        private bool isEmbeddedView;
+
         private TextField displayNameField;
         private EnumField behaviorField;
         private FloatField maxHealthField;
@@ -24,22 +26,33 @@ namespace IrisTrace.Editor.Windows
         [MenuItem("Window/IrisTrace FPS/Create Enemy")]
         public static void Open()
         {
-            IrisTraceEnemyWizardWindow window = GetWindow<IrisTraceEnemyWizardWindow>("Create Enemy");
-            window.minSize = new Vector2(420f, 540f);
-            window.Show();
+            IrisTraceWindow.OpenPage("Create Enemy");
         }
 
         public void CreateGUI()
         {
-            rootVisualElement.Clear();
-            rootVisualElement.style.flexGrow = 1f;
-            rootVisualElement.style.backgroundColor = IrisTraceTheme.Background;
+            BuildEmbeddedContent(rootVisualElement);
+        }
+
+        public VisualElement CreateEmbeddedView()
+        {
+            isEmbeddedView = true;
+            VisualElement embeddedRoot = new VisualElement();
+            BuildEmbeddedContent(embeddedRoot);
+            return embeddedRoot;
+        }
+
+        private void BuildEmbeddedContent(VisualElement root)
+        {
+            root.Clear();
+            root.style.flexGrow = 1f;
+            root.style.backgroundColor = IrisTraceTheme.Background;
 
             ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.style.flexGrow = 1f;
             scroll.style.backgroundColor = IrisTraceTheme.Background;
             scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-            rootVisualElement.Add(scroll);
+            root.Add(scroll);
 
             VisualElement content = new VisualElement();
             content.style.paddingLeft = 20f;
@@ -56,6 +69,7 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildFooterActions());
 
             UpdateAIFieldVisibility();
+        
         }
 
         private VisualElement BuildHeader()
@@ -294,7 +308,8 @@ namespace IrisTrace.Editor.Windows
                 : "Stationary target is ready for weapon testing.";
             EditorUtility.DisplayDialog("Enemy Generated",
                 $"'{definition.DisplayName}' was saved as a prefab and placed in the active scene.\n\n{behaviorDescription}", "OK");
-            Close();
+            if (!isEmbeddedView)
+                Close();
         }
 
         private bool ValidateInput()

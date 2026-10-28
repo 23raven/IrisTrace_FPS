@@ -71,16 +71,26 @@ namespace IrisTrace.Editor.Windows
         [MenuItem("Window/IrisTrace FPS/Weapon Library")]
         public static void Open()
         {
-            IrisTraceWeaponLibraryWindow window = GetWindow<IrisTraceWeaponLibraryWindow>("Weapon Library");
-            window.minSize = new Vector2(430f, 560f);
-            window.Show();
+            IrisTraceWindow.OpenPage("Weapons");
         }
 
         public void CreateGUI()
         {
-            rootVisualElement.Clear();
-            rootVisualElement.style.flexGrow = 1f;
-            rootVisualElement.style.backgroundColor = IrisTraceTheme.Background;
+            BuildEmbeddedContent(rootVisualElement);
+        }
+
+        public VisualElement CreateEmbeddedView()
+        {
+            VisualElement embeddedRoot = new VisualElement();
+            BuildEmbeddedContent(embeddedRoot);
+            return embeddedRoot;
+        }
+
+        private void BuildEmbeddedContent(VisualElement root)
+        {
+            root.Clear();
+            root.style.flexGrow = 1f;
+            root.style.backgroundColor = IrisTraceTheme.Background;
 
             ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.style.flexGrow = 1f;
@@ -88,7 +98,7 @@ namespace IrisTrace.Editor.Windows
             scroll.style.paddingRight = 16f;
             scroll.style.paddingTop = 14f;
             scroll.style.paddingBottom = 16f;
-            rootVisualElement.Add(scroll);
+            root.Add(scroll);
 
             VisualElement header = new VisualElement();
             header.style.flexDirection = FlexDirection.Row;
@@ -133,6 +143,7 @@ namespace IrisTrace.Editor.Windows
             scroll.Add(detailsContainer);
 
             RefreshList();
+        
         }
 
         private void RefreshList()
