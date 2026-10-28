@@ -24,6 +24,7 @@ namespace IrisTrace.Runtime.Characters
         private readonly Collider[] overlapBuffer = new Collider[32];
         private ICharacterInput input;
         private IWeaponInput weaponInput;
+        private IAimState aimState;
         private ISprintState sprintState;
         private Vector3 horizontalVelocity;
         private float verticalVelocity;
@@ -65,6 +66,7 @@ namespace IrisTrace.Runtime.Characters
             inputSource = inputComponent;
             input = inputComponent as ICharacterInput;
             weaponInput = inputComponent as IWeaponInput;
+            ResolveAimState();
             ResolveSprintState();
             CaptureStandingPose();
             horizontalVelocity = Vector3.zero;
@@ -101,8 +103,23 @@ namespace IrisTrace.Runtime.Characters
                 }
             }
 
+            ResolveAimState();
             ResolveSprintState();
             CaptureStandingPose();
+        }
+
+        private void ResolveAimState()
+        {
+            aimState = null;
+            MonoBehaviour[] behaviours = GetComponents<MonoBehaviour>();
+            foreach (MonoBehaviour behaviour in behaviours)
+            {
+                if (behaviour is IAimState state)
+                {
+                    aimState = state;
+                    return;
+                }
+            }
         }
 
         private void ResolveSprintState()
@@ -150,7 +167,8 @@ namespace IrisTrace.Runtime.Characters
             if (playerCamera == null)
                 return;
 
-            Vector2 look = input.LookDelta * definition.MouseSensitivity * MouseLookScale;
+            float aimSensitivity = aimState != null ? aimState.LookSensitivityMultiplier : 1f;
+            Vector2 look = input.LookDelta * definition.MouseSensitivity * aimSensitivity * MouseLookScale;
             transform.Rotate(Vector3.up * look.x);
             cameraPitch = Mathf.Clamp(cameraPitch - look.y, -85f, 85f);
             playerCamera.transform.localRotation = Quaternion.Euler(cameraPitch, 0f, 0f);

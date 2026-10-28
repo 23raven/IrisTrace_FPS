@@ -16,6 +16,7 @@ namespace IrisTrace.Editor.Windows
     {
         private const string WeaponConfigRoot = "Assets/IrisTraceFPS_Generated/Configurations/Weapons";
         private const string CharacterConfigRoot = "Assets/IrisTraceFPS_Generated/Configurations/Characters";
+        private const string AimProfileConfigRoot = "Assets/IrisTraceFPS_Generated/Configurations/Weapons/AimProfiles";
 
         private readonly List<WeaponDefinition> allWeapons = new List<WeaponDefinition>();
         private TextField searchField;
@@ -31,6 +32,16 @@ namespace IrisTrace.Editor.Windows
         private FloatField reloadDurationField;
         private FloatField rangeField;
         private DropdownField fireModeField;
+        private ObjectField aimProfileField;
+        private DropdownField aimModeField;
+        private FloatField aimFieldOfViewField;
+        private FloatField scopeFieldOfViewField;
+        private FloatField aimTransitionSpeedField;
+        private FloatField aimSensitivityMultiplierField;
+        private Vector3Field aimPivotPositionField;
+        private Vector3Field aimPivotEulerField;
+        private Toggle hideViewmodelWhenScopedField;
+        private ObjectField scopeOverlayTextureField;
         private ObjectField fireClipField;
         private ObjectField reloadClipField;
         private ObjectField dryFireClipField;
@@ -234,6 +245,28 @@ namespace IrisTrace.Editor.Windows
             fireModeField = new DropdownField("Fire Mode");
             fireModeField.choices = new List<string> { "Semi-Auto", "Automatic" };
             fireModeField.value = selected.Automatic ? "Automatic" : "Semi-Auto";
+
+            WeaponAimProfile currentAimProfile = selected.AimProfile;
+            aimProfileField = new ObjectField("Aim Profile (Optional)")
+            {
+                objectType = typeof(WeaponAimProfile),
+                allowSceneObjects = false,
+                value = currentAimProfile
+            };
+            aimModeField = new DropdownField("Aim Behavior")
+            {
+                choices = new List<string> { "Disabled", "Aim Down Sights", "Scope Zoom" },
+                value = currentAimProfile != null ? AimModeToLabel(currentAimProfile.Mode) : "Aim Down Sights"
+            };
+            aimFieldOfViewField = new FloatField("ADS Field of View") { value = currentAimProfile != null ? currentAimProfile.AimFieldOfView : 55f };
+            scopeFieldOfViewField = new FloatField("Scope Field of View") { value = currentAimProfile != null ? currentAimProfile.ScopeFieldOfView : 22f };
+            aimTransitionSpeedField = new FloatField("Aim Transition Speed") { value = currentAimProfile != null ? currentAimProfile.TransitionSpeed : 12f };
+            aimSensitivityMultiplierField = new FloatField("Aim Sensitivity Multiplier") { value = currentAimProfile != null ? currentAimProfile.AimSensitivityMultiplier : 0.65f };
+            aimPivotPositionField = new Vector3Field("Aim Pose Position Offset") { value = currentAimProfile != null ? currentAimProfile.AimPivotPositionOffset : new Vector3(-0.16f, 0.14f, 0.02f) };
+            aimPivotEulerField = new Vector3Field("Aim Pose Rotation Offset") { value = currentAimProfile != null ? currentAimProfile.AimPivotEulerOffset : Vector3.zero };
+            hideViewmodelWhenScopedField = new Toggle("Hide Weapon Model While Scoped") { value = currentAimProfile == null || currentAimProfile.HideViewmodelWhileScoped };
+            scopeOverlayTextureField = new ObjectField("Scope Overlay Texture (Optional)") { objectType = typeof(Texture2D), allowSceneObjects = false, value = currentAimProfile != null ? currentAimProfile.ScopeOverlayTexture : null };
+            aimProfileField.RegisterValueChangedCallback(evt => LoadAimProfileFields(evt.newValue as WeaponAimProfile));
             fireClipField = new ObjectField("Fire Sound") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.FireClip };
             reloadClipField = new ObjectField("Reload Sound") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.ReloadClip };
             dryFireClipField = new ObjectField("Dry-Fire Sound (Optional)") { objectType = typeof(AudioClip), allowSceneObjects = false, value = selected.DryFireClip };
@@ -278,6 +311,29 @@ namespace IrisTrace.Editor.Windows
             AddField(panel, viewModelPositionField);
             AddField(panel, viewModelRotationField);
             AddField(panel, viewModelScaleField);
+
+            Foldout aimFoldout = new Foldout { text = "Optional Aim Behavior", value = currentAimProfile != null };
+            aimFoldout.style.marginTop = 6f;
+            AddField(aimFoldout, aimProfileField);
+            Button createAimProfileButton = new Button(CreateAimProfileForSelected) { text = "Create Aim Profile" };
+            StyleButton(createAimProfileButton, false);
+            AddField(aimFoldout, createAimProfileButton);
+            Label aimNote = new Label("No profile = no RMB aiming. Use separate profiles for hip-fire-only weapons, classic ADS, or scoped zoom.");
+            aimNote.style.color = IrisTraceTheme.SecondaryText;
+            aimNote.style.whiteSpace = WhiteSpace.Normal;
+            aimNote.style.fontSize = 10f;
+            AddField(aimFoldout, aimNote);
+            AddField(aimFoldout, aimModeField);
+            AddField(aimFoldout, aimFieldOfViewField);
+            AddField(aimFoldout, scopeFieldOfViewField);
+            AddField(aimFoldout, aimTransitionSpeedField);
+            AddField(aimFoldout, aimSensitivityMultiplierField);
+            AddField(aimFoldout, aimPivotPositionField);
+            AddField(aimFoldout, aimPivotEulerField);
+            AddField(aimFoldout, hideViewmodelWhenScopedField);
+            AddField(aimFoldout, scopeOverlayTextureField);
+            SetAimProfileControlsEnabled(currentAimProfile != null);
+            panel.Add(aimFoldout);
 
             Foldout feedbackFoldout = new Foldout { text = "Recoil & Reload Feedback", value = false };
             feedbackFoldout.style.marginTop = 6f;
@@ -395,6 +451,9 @@ namespace IrisTrace.Editor.Windows
             if (dryFireClip != null) dryFireClip.objectReferenceValue = dryFireClipField.value;
             SerializedProperty viewModelPrefab = serialized.FindProperty("viewModelPrefab");
             if (viewModelPrefab != null) viewModelPrefab.objectReferenceValue = viewModelPrefabField.value;
+            WeaponAimProfile aimProfile = aimProfileField != null ? aimProfileField.value as WeaponAimProfile : null;
+            SerializedProperty aimProfileProperty = serialized.FindProperty("aimProfile");
+            if (aimProfileProperty != null) aimProfileProperty.objectReferenceValue = aimProfile;
             SetVector3(serialized, "viewModelMountLocalPosition", viewModelMountPositionField.value);
             SetVector3(serialized, "viewModelMountLocalEuler", viewModelMountRotationField.value);
             SetVector3(serialized, "viewModelMountLocalScale", viewModelMountScaleField.value);
@@ -420,6 +479,8 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "movementBobSmooth", Mathf.Max(0.1f, movementBobSmoothField.value));
             serialized.ApplyModifiedProperties();
 
+            SaveAimProfile(aimProfile);
+
             string assetPath = AssetDatabase.GetAssetPath(selected);
             string targetName = SanitizeFileName(displayName);
             if (!string.IsNullOrEmpty(assetPath) && Path.GetFileNameWithoutExtension(assetPath) != targetName)
@@ -430,6 +491,121 @@ namespace IrisTrace.Editor.Windows
             AssetDatabase.Refresh();
             ShowNotification(new GUIContent("Weapon saved"));
             RefreshList();
+        }
+
+        private void CreateAimProfileForSelected()
+        {
+            if (selected == null)
+                return;
+
+            EnsureFolderExists(AimProfileConfigRoot);
+            WeaponAimProfile profile = CreateInstance<WeaponAimProfile>();
+            string profileName = SanitizeFileName((selected.DisplayName ?? "Weapon") + " Aim Profile");
+            profile.name = profileName;
+            string path = AssetDatabase.GenerateUniqueAssetPath(AimProfileConfigRoot + "/" + profileName + ".asset");
+            AssetDatabase.CreateAsset(profile, path);
+
+            SerializedObject weaponSerialized = new SerializedObject(selected);
+            SerializedProperty profileProperty = weaponSerialized.FindProperty("aimProfile");
+            if (profileProperty != null)
+                profileProperty.objectReferenceValue = profile;
+            weaponSerialized.ApplyModifiedProperties();
+            EditorUtility.SetDirty(selected);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            if (aimProfileField != null)
+                aimProfileField.value = profile;
+            LoadAimProfileFields(profile);
+            ShowNotification(new GUIContent("Aim profile created"));
+        }
+
+        private void LoadAimProfileFields(WeaponAimProfile profile)
+        {
+            if (profile != null)
+            {
+                aimModeField.value = AimModeToLabel(profile.Mode);
+                aimFieldOfViewField.value = profile.AimFieldOfView;
+                scopeFieldOfViewField.value = profile.ScopeFieldOfView;
+                aimTransitionSpeedField.value = profile.TransitionSpeed;
+                aimSensitivityMultiplierField.value = profile.AimSensitivityMultiplier;
+                aimPivotPositionField.value = profile.AimPivotPositionOffset;
+                aimPivotEulerField.value = profile.AimPivotEulerOffset;
+                hideViewmodelWhenScopedField.value = profile.HideViewmodelWhileScoped;
+                scopeOverlayTextureField.value = profile.ScopeOverlayTexture;
+            }
+            else
+            {
+                aimModeField.value = "Aim Down Sights";
+                aimFieldOfViewField.value = 55f;
+                scopeFieldOfViewField.value = 22f;
+                aimTransitionSpeedField.value = 12f;
+                aimSensitivityMultiplierField.value = 0.65f;
+                aimPivotPositionField.value = new Vector3(-0.16f, 0.14f, 0.02f);
+                aimPivotEulerField.value = Vector3.zero;
+                hideViewmodelWhenScopedField.value = true;
+                scopeOverlayTextureField.value = null;
+            }
+
+            SetAimProfileControlsEnabled(profile != null);
+        }
+
+        private void SetAimProfileControlsEnabled(bool enabled)
+        {
+            if (aimModeField == null)
+                return;
+            aimModeField.SetEnabled(enabled);
+            aimFieldOfViewField.SetEnabled(enabled);
+            scopeFieldOfViewField.SetEnabled(enabled);
+            aimTransitionSpeedField.SetEnabled(enabled);
+            aimSensitivityMultiplierField.SetEnabled(enabled);
+            aimPivotPositionField.SetEnabled(enabled);
+            aimPivotEulerField.SetEnabled(enabled);
+            hideViewmodelWhenScopedField.SetEnabled(enabled);
+            scopeOverlayTextureField.SetEnabled(enabled);
+        }
+
+        private void SaveAimProfile(WeaponAimProfile profile)
+        {
+            if (profile == null)
+                return;
+
+            SerializedObject serialized = new SerializedObject(profile);
+            SerializedProperty mode = serialized.FindProperty("mode");
+            if (mode != null)
+                mode.enumValueIndex = AimLabelToIndex(aimModeField.value);
+            SetFloat(serialized, "aimFieldOfView", Mathf.Clamp(aimFieldOfViewField.value, 10f, 89f));
+            SetFloat(serialized, "scopeFieldOfView", Mathf.Clamp(scopeFieldOfViewField.value, 5f, 60f));
+            SetFloat(serialized, "transitionSpeed", Mathf.Max(0.1f, aimTransitionSpeedField.value));
+            SetFloat(serialized, "aimSensitivityMultiplier", Mathf.Clamp(aimSensitivityMultiplierField.value, 0.05f, 2f));
+            SetVector3(serialized, "aimPivotPositionOffset", aimPivotPositionField.value);
+            SetVector3(serialized, "aimPivotEulerOffset", aimPivotEulerField.value);
+            SerializedProperty hide = serialized.FindProperty("hideViewmodelWhileScoped");
+            if (hide != null) hide.boolValue = hideViewmodelWhenScopedField.value;
+            SerializedProperty overlay = serialized.FindProperty("scopeOverlayTexture");
+            if (overlay != null) overlay.objectReferenceValue = scopeOverlayTextureField.value;
+            serialized.ApplyModifiedProperties();
+            EditorUtility.SetDirty(profile);
+        }
+
+        private static string AimModeToLabel(WeaponAimMode mode)
+        {
+            switch (mode)
+            {
+                case WeaponAimMode.AimDownSights: return "Aim Down Sights";
+                case WeaponAimMode.ScopeZoom: return "Scope Zoom";
+                default: return "Disabled";
+            }
+        }
+
+        private static int AimLabelToIndex(string label)
+        {
+            switch (label)
+            {
+                case "Aim Down Sights": return (int)WeaponAimMode.AimDownSights;
+                case "Scope Zoom": return (int)WeaponAimMode.ScopeZoom;
+                default: return (int)WeaponAimMode.Disabled;
+            }
         }
 
         private void DuplicateSelected()

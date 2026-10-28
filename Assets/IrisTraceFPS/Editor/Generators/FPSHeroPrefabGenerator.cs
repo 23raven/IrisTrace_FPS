@@ -76,11 +76,25 @@ namespace IrisTrace.Editor.Generators
                     armsInstance.transform.localScale = Vector3.one;
                 }
 
+                // The aim pivot is animated independently from WeaponMount. This prevents ADS offsets
+                // from fighting recoil/sway/bobbing, which remain on the child WeaponMount.
+                GameObject weaponAimPivot = new GameObject("WeaponAimPivot");
+                weaponAimPivot.transform.SetParent(cameraObject.transform, false);
+                weaponAimPivot.transform.localPosition = Vector3.zero;
+                weaponAimPivot.transform.localRotation = Quaternion.identity;
+                weaponAimPivot.transform.localScale = Vector3.one;
+
                 GameObject weaponMount = new GameObject("WeaponMount");
-                weaponMount.transform.SetParent(cameraObject.transform, false);
+                weaponMount.transform.SetParent(weaponAimPivot.transform, false);
                 weaponMount.transform.localPosition = weaponDefinition.ViewModelMountLocalPosition;
                 weaponMount.transform.localRotation = Quaternion.Euler(weaponDefinition.ViewModelMountLocalEuler);
                 weaponMount.transform.localScale = weaponDefinition.ViewModelMountLocalScale;
+
+                GameObject weaponVisualRoot = new GameObject("WeaponVisualRoot");
+                weaponVisualRoot.transform.SetParent(weaponMount.transform, false);
+                weaponVisualRoot.transform.localPosition = Vector3.zero;
+                weaponVisualRoot.transform.localRotation = Quaternion.identity;
+                weaponVisualRoot.transform.localScale = Vector3.one;
 
                 if (weaponDefinition.ViewModelPrefab != null)
                 {
@@ -88,7 +102,7 @@ namespace IrisTrace.Editor.Generators
                     if (weaponVisual == null)
                         weaponVisual = UnityEngine.Object.Instantiate(weaponDefinition.ViewModelPrefab);
                     weaponVisual.name = weaponDefinition.ViewModelPrefab.name;
-                    weaponVisual.transform.SetParent(weaponMount.transform, false);
+                    weaponVisual.transform.SetParent(weaponVisualRoot.transform, false);
                     weaponVisual.transform.localPosition = weaponDefinition.ViewModelLocalPosition;
                     weaponVisual.transform.localRotation = Quaternion.Euler(weaponDefinition.ViewModelLocalEuler);
                     weaponVisual.transform.localScale = weaponDefinition.ViewModelLocalScale;
@@ -96,7 +110,7 @@ namespace IrisTrace.Editor.Generators
                 else
                 {
                     EnsurePlaceholderMaterials();
-                    GameObject placeholderWeapon = BuildPlaceholderWeapon(weaponMount.transform);
+                    GameObject placeholderWeapon = BuildPlaceholderWeapon(weaponVisualRoot.transform);
                     placeholderWeapon.transform.localPosition = weaponDefinition.ViewModelLocalPosition;
                     placeholderWeapon.transform.localRotation = Quaternion.Euler(weaponDefinition.ViewModelLocalEuler);
                     placeholderWeapon.transform.localScale = weaponDefinition.ViewModelLocalScale;
@@ -131,6 +145,10 @@ namespace IrisTrace.Editor.Generators
 
                 WeaponInputHandler weaponInput = buildRoot.AddComponent<WeaponInputHandler>();
                 weaponInput.Configure(weapon, inputReader);
+
+                WeaponAimController aimController = buildRoot.AddComponent<WeaponAimController>();
+                aimController.Configure(playerCamera, weaponAimPivot.transform, weaponVisualRoot,
+                    weaponDefinition, inputReader);
 
                 MonoBehaviour ability1 = CreateAbility(buildRoot, definition.Ability1Type,
                     definition.Ability1Value, definition.Ability1Cooldown);

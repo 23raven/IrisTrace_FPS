@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b5778014a14f90a4883e6c798d5bcdee, type: 3}
-  m_Name: codey_PrimaryWeapon
+  m_Name: h2 Primary Weapon
   m_EditorClassIdentifier: IrisTrace.Runtime.Weapons::IrisTrace.Runtime.Weapons.WeaponDefinition
-  id: 00aa11e311d74fb189ab285a0ee10581
-  displayName: codey Primary Weapon
+  id: 7316d6f35c724a35a3b989446396f2bd
+  displayName: h2 Primary Weapon
   damage: 25
   shotsPerSecond: 6
   magazineSize: 12
@@ -24,10 +24,26 @@ MonoBehaviour:
   viewModelMountLocalPosition: {x: 0.24, y: -0.3, z: 0.56}
   viewModelMountLocalEuler: {x: 0, y: 0, z: 0}
   viewModelMountLocalScale: {x: 0.72, y: 0.72, z: 0.72}
+  aimProfile: {fileID: 11400000, guid: 2837cad7a94582646bb13680ba586354, type: 2}
   viewModelPrefab: {fileID: 0}
   viewModelLocalPosition: {x: 0, y: 0, z: 0}
   viewModelLocalEuler: {x: 0, y: 0, z: 0}
   viewModelLocalScale: {x: 1, y: 1, z: 1}
+  recoilLocalPosition: {x: 0, y: -0.012, z: -0.035}
+  recoilLocalEuler: {x: -1.8, y: 0.15, z: 0}
+  recoilRecoverySpeed: 12
+  reloadDipLocalPosition: {x: 0, y: -0.08, z: -0.035}
+  reloadDipLocalEuler: {x: 7, y: -3, z: -4}
+  reloadMotionSpeed: 8
+  enableLookSway: 1
+  lookSwayPositionAmount: {x: 0.012, y: 0.009, z: 0.003}
+  lookSwayRotationAmount: {x: 1.2, y: 0.9, z: 1.4}
+  lookSwaySmooth: 12
+  enableMovementBobbing: 1
+  movementBobPositionAmount: {x: 0.008, y: 0.008, z: 0.003}
+  movementBobRotationAmount: {x: 0.35, y: 0.2, z: 0.7}
+  movementBobFrequency: 8
+  movementBobSmooth: 10
   fireClip: {fileID: 0}
   reloadClip: {fileID: 0}
   dryFireClip: {fileID: 0}

@@ -10,7 +10,7 @@ namespace IrisTrace.Runtime.Input
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(-1000)]
-    public sealed class IrisTraceInputReader : MonoBehaviour, ICharacterInput, IWeaponInput, IAbilityInput, IAbilityHoldInput
+    public sealed class IrisTraceInputReader : MonoBehaviour, ICharacterInput, IWeaponInput, IAbilityInput, IAbilityHoldInput, IAimInput
     {
         [Header("Movement bindings")]
         [SerializeField] private string moveForward = "<Keyboard>/w";
@@ -23,6 +23,7 @@ namespace IrisTrace.Runtime.Input
         [Header("Weapon bindings")]
         [SerializeField] private string fire = "<Mouse>/leftButton";
         [SerializeField] private string reload = "<Keyboard>/r";
+        [SerializeField] private string aim = "<Mouse>/rightButton";
 
         [Header("Ability bindings")]
         [SerializeField] private string ability1 = "<Keyboard>/q";
@@ -34,6 +35,7 @@ namespace IrisTrace.Runtime.Input
         private InputAction crouchAction;
         private InputAction fireAction;
         private InputAction reloadAction;
+        private InputAction aimAction;
         private InputAction ability1Action;
         private InputAction ability2Action;
         private InputAction cancelAction;
@@ -47,6 +49,7 @@ namespace IrisTrace.Runtime.Input
         public bool FireHeld => fireAction != null && fireAction.IsPressed();
         public bool FireReleased => fireAction != null && fireAction.WasReleasedThisFrame();
         public bool ReloadPressed => reloadAction != null && reloadAction.WasPressedThisFrame();
+        public bool AimHeld => aimAction != null && aimAction.IsPressed();
         public bool Ability1Pressed => ability1Action != null && ability1Action.WasPressedThisFrame();
         public bool Ability2Pressed => ability2Action != null && ability2Action.WasPressedThisFrame();
         public bool Ability1Held => ability1Action != null && ability1Action.IsPressed();
@@ -139,6 +142,7 @@ namespace IrisTrace.Runtime.Input
             crouchAction = new InputAction("Crouch", InputActionType.Button, SafePath(crouch, "<Keyboard>/leftCtrl"));
             fireAction = new InputAction("Fire", InputActionType.Button, SafePath(fire, "<Mouse>/leftButton"));
             reloadAction = new InputAction("Reload", InputActionType.Button, SafePath(reload, "<Keyboard>/r"));
+            aimAction = new InputAction("Aim", InputActionType.Button, SafePath(aim, "<Mouse>/rightButton"));
             ability1Action = new InputAction("Ability1", InputActionType.Button, SafePath(ability1, "<Keyboard>/q"));
             ability2Action = new InputAction("Ability2", InputActionType.Button, SafePath(ability2, "<Keyboard>/e"));
             cancelAction = new InputAction("Cancel", InputActionType.Button, "<Keyboard>/escape");
@@ -149,6 +153,7 @@ namespace IrisTrace.Runtime.Input
             crouchAction.Enable();
             fireAction.Enable();
             reloadAction.Enable();
+            aimAction.Enable();
             ability1Action.Enable();
             ability2Action.Enable();
             cancelAction.Enable();
@@ -162,6 +167,7 @@ namespace IrisTrace.Runtime.Input
             DisposeAction(ref crouchAction);
             DisposeAction(ref fireAction);
             DisposeAction(ref reloadAction);
+            DisposeAction(ref aimAction);
             DisposeAction(ref ability1Action);
             DisposeAction(ref ability2Action);
             DisposeAction(ref cancelAction);

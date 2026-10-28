@@ -20,6 +20,9 @@ namespace IrisTrace.Runtime.Weapons
         [SerializeField] private Vector3 viewModelMountLocalEuler = Vector3.zero;
         [SerializeField] private Vector3 viewModelMountLocalScale = new Vector3(0.72f, 0.72f, 0.72f);
 
+        [Header("Optional Aiming")]
+        [SerializeField] private WeaponAimProfile aimProfile;
+
         [Header("First-Person Viewmodel Asset")]
         [SerializeField] private GameObject viewModelPrefab;
         [SerializeField] private Vector3 viewModelLocalPosition = Vector3.zero;
@@ -61,6 +64,8 @@ namespace IrisTrace.Runtime.Weapons
         public float ReloadDuration => reloadDuration;
         public float Range => range;
         public bool Automatic => automatic;
+        /// <summary>Null means this weapon has no RMB aim behavior.</summary>
+        public WeaponAimProfile AimProfile => aimProfile;
         public Vector3 ViewModelMountLocalPosition => viewModelMountLocalPosition == Vector3.zero
             ? new Vector3(0.24f, -0.30f, 0.56f) : viewModelMountLocalPosition;
         public Vector3 ViewModelMountLocalEuler => viewModelMountLocalEuler;
