@@ -255,6 +255,8 @@ namespace IrisTrace.Editor.Windows
             AddDetail(panel, "ID", string.IsNullOrEmpty(selected.Id) ? "Missing ID" : selected.Id);
             AddDetail(panel, "Health", $"{selected.MaxHealth:0} HP");
             AddDetail(panel, "Movement", $"Walk {selected.WalkSpeed:0.##}  /  Sprint {selected.SprintSpeed:0.##}");
+            AddDetail(panel, "Capsule", $"Height {selected.ControllerHeight:0.##}  /  Radius {selected.ControllerRadius:0.##}");
+            AddDetail(panel, "Hit Multipliers", $"Head x{selected.HeadDamageMultiplier:0.##}  /  Body x{selected.BodyDamageMultiplier:0.##}  /  Legs x{selected.LegsDamageMultiplier:0.##}");
             AddDetail(panel, "Config", AssetDatabase.GetAssetPath(selected));
 
             VisualElement actions = new VisualElement();

@@ -23,6 +23,13 @@ namespace IrisTrace.Runtime.Characters
         [Header("Vitals")]
         [SerializeField, Min(1f)] private float maxHealth = 100f;
 
+        [Header("Collision & Hit Zones")]
+        [SerializeField, Min(0.8f)] private float controllerHeight = 1.8f;
+        [SerializeField, Min(0.05f)] private float controllerRadius = 0.32f;
+        [SerializeField, Min(0f)] private float headDamageMultiplier = 2f;
+        [SerializeField, Min(0f)] private float bodyDamageMultiplier = 1f;
+        [SerializeField, Min(0f)] private float legsDamageMultiplier = 0.75f;
+
         [Header("Movement")]
         [SerializeField, Min(0.1f)] private float walkSpeed = 5f;
         [SerializeField, Min(0.1f)] private float sprintSpeed = 8f;
@@ -97,6 +104,11 @@ namespace IrisTrace.Runtime.Characters
         public float SprintFootstepInterval => sprintFootstepInterval > 0.1f ? sprintFootstepInterval : 0.29f;
         public float CrouchFootstepInterval => crouchFootstepInterval > 0.1f ? crouchFootstepInterval : 0.62f;
         public float MaxHealth => maxHealth;
+        public float ControllerHeight => Mathf.Max(0.8f, controllerHeight);
+        public float ControllerRadius => Mathf.Clamp(controllerRadius, 0.05f, ControllerHeight * 0.45f);
+        public float HeadDamageMultiplier => Mathf.Max(0f, headDamageMultiplier);
+        public float BodyDamageMultiplier => Mathf.Max(0f, bodyDamageMultiplier);
+        public float LegsDamageMultiplier => Mathf.Max(0f, legsDamageMultiplier);
         public float WalkSpeed => walkSpeed;
         public float SprintSpeed => sprintSpeed;
         public float JumpHeight => jumpHeight;
@@ -140,5 +152,16 @@ namespace IrisTrace.Runtime.Characters
         public string Ability2Binding => ability2Binding;
         public float Ability2Cooldown => ability2Cooldown;
         public float Ability2Value => ability2Value;
+
+        private void OnValidate()
+        {
+            maxHealth = Mathf.Max(1f, maxHealth);
+            controllerHeight = Mathf.Max(0.8f, controllerHeight);
+            controllerRadius = Mathf.Clamp(controllerRadius, 0.05f, controllerHeight * 0.45f);
+            headDamageMultiplier = Mathf.Max(0f, headDamageMultiplier);
+            bodyDamageMultiplier = Mathf.Max(0f, bodyDamageMultiplier);
+            legsDamageMultiplier = Mathf.Max(0f, legsDamageMultiplier);
+            crouchedHeight = Mathf.Clamp(crouchedHeight, 0.65f, Mathf.Max(0.66f, controllerHeight - 0.05f));
+        }
     }
 }

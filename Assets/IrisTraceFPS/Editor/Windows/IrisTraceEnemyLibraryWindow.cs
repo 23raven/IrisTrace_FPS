@@ -30,6 +30,11 @@ namespace IrisTrace.Editor.Windows
         private FloatField attackRangeField;
         private FloatField attackDamageField;
         private FloatField attackCooldownField;
+        private FloatField capsuleHeightField;
+        private FloatField capsuleRadiusField;
+        private FloatField headDamageMultiplierField;
+        private FloatField bodyDamageMultiplierField;
+        private FloatField legsDamageMultiplierField;
 
         [MenuItem("Window/IrisTrace FPS/Enemy Library")]
         public static void Open()
@@ -218,6 +223,11 @@ namespace IrisTrace.Editor.Windows
             attackRangeField = new FloatField("Attack Range") { value = selected.AttackRange };
             attackDamageField = new FloatField("Attack Damage") { value = selected.AttackDamage };
             attackCooldownField = new FloatField("Attack Cooldown (s)") { value = selected.AttackCooldown };
+            capsuleHeightField = new FloatField("Capsule Height") { value = selected.CapsuleHeight };
+            capsuleRadiusField = new FloatField("Capsule Radius") { value = selected.CapsuleRadius };
+            headDamageMultiplierField = new FloatField("Head Damage Multiplier") { value = selected.HeadDamageMultiplier };
+            bodyDamageMultiplierField = new FloatField("Body Damage Multiplier") { value = selected.BodyDamageMultiplier };
+            legsDamageMultiplierField = new FloatField("Legs Damage Multiplier") { value = selected.LegsDamageMultiplier };
 
             AddField(panel, nameField);
             AddField(panel, behaviorField);
@@ -228,7 +238,20 @@ namespace IrisTrace.Editor.Windows
             AddField(panel, attackDamageField);
             AddField(panel, attackCooldownField);
 
-            Label hint = new Label("AI values are used when Behavior is set to BasicAI.");
+            Label collisionHeading = new Label("Collision & Hit Zones");
+            collisionHeading.style.color = IrisTraceTheme.Accent;
+            collisionHeading.style.fontSize = 11f;
+            collisionHeading.style.unityFontStyleAndWeight = FontStyle.Bold;
+            collisionHeading.style.marginTop = 8f;
+            collisionHeading.style.marginBottom = 4f;
+            panel.Add(collisionHeading);
+            AddField(panel, capsuleHeightField);
+            AddField(panel, capsuleRadiusField);
+            AddField(panel, headDamageMultiplierField);
+            AddField(panel, bodyDamageMultiplierField);
+            AddField(panel, legsDamageMultiplierField);
+
+            Label hint = new Label("AI values are used when Behavior is set to BasicAI. Hit-zone multipliers scale incoming weapon damage.");
             hint.style.color = IrisTraceTheme.SecondaryText;
             hint.style.fontSize = 10f;
             hint.style.whiteSpace = WhiteSpace.Normal;
@@ -294,6 +317,12 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "attackRange", Mathf.Max(0.5f, attackRangeField.value));
             SetFloat(serialized, "attackDamage", Mathf.Max(0f, attackDamageField.value));
             SetFloat(serialized, "attackCooldown", Mathf.Max(0.1f, attackCooldownField.value));
+            float safeHeight = Mathf.Max(0.8f, capsuleHeightField.value);
+            SetFloat(serialized, "capsuleHeight", safeHeight);
+            SetFloat(serialized, "capsuleRadius", Mathf.Clamp(capsuleRadiusField.value, 0.05f, safeHeight * 0.45f));
+            SetFloat(serialized, "headDamageMultiplier", Mathf.Max(0f, headDamageMultiplierField.value));
+            SetFloat(serialized, "bodyDamageMultiplier", Mathf.Max(0f, bodyDamageMultiplierField.value));
+            SetFloat(serialized, "legsDamageMultiplier", Mathf.Max(0f, legsDamageMultiplierField.value));
             serialized.ApplyModifiedProperties();
             EditorUtility.SetDirty(selected);
 
@@ -329,7 +358,12 @@ namespace IrisTrace.Editor.Windows
                 selected.DetectionRange,
                 selected.AttackRange,
                 selected.AttackDamage,
-                selected.AttackCooldown);
+                selected.AttackCooldown,
+                selected.CapsuleHeight,
+                selected.CapsuleRadius,
+                selected.HeadDamageMultiplier,
+                selected.BodyDamageMultiplier,
+                selected.LegsDamageMultiplier);
             duplicate.name = SanitizeFileName(newName);
 
             string newPath = AssetDatabase.GenerateUniqueAssetPath($"{EnemyConfigRoot}/{SanitizeFileName(newName)}.asset");

@@ -21,6 +21,11 @@ namespace IrisTrace.Editor.Windows
         private FloatField attackRangeField;
         private FloatField attackDamageField;
         private FloatField attackCooldownField;
+        private FloatField capsuleHeightField;
+        private FloatField capsuleRadiusField;
+        private FloatField headDamageMultiplierField;
+        private FloatField bodyDamageMultiplierField;
+        private FloatField legsDamageMultiplierField;
         private VisualElement aiFields;
 
         [MenuItem("Window/IrisTrace FPS/Create Enemy")]
@@ -64,6 +69,8 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildHeader());
             content.Add(BuildSection("ENEMY SETUP", "Choose a stationary target or a simple enemy bot."));
             content.Add(BuildSettingsPanel());
+            content.Add(BuildSection("COLLISION & HIT ZONES", "Set enemy dimensions and the damage multipliers for each hit zone."));
+            content.Add(BuildHitZonesPanel());
             content.Add(BuildSection("BASIC AI", "The bot detects the generated hero, follows and attacks within range."));
             content.Add(BuildAISettingsPanel());
             content.Add(BuildFooterActions());
@@ -149,6 +156,35 @@ namespace IrisTrace.Editor.Windows
             panel.Add(displayNameField);
             panel.Add(behaviorField);
             panel.Add(maxHealthField);
+            return panel;
+        }
+
+        private VisualElement BuildHitZonesPanel()
+        {
+            VisualElement panel = BuildPanel();
+            capsuleHeightField = new FloatField("Capsule Height") { value = 2.4f };
+            capsuleRadiusField = new FloatField("Capsule Radius") { value = 0.45f };
+            headDamageMultiplierField = new FloatField("Head Damage Multiplier") { value = 2f };
+            bodyDamageMultiplierField = new FloatField("Body Damage Multiplier") { value = 1f };
+            legsDamageMultiplierField = new FloatField("Legs Damage Multiplier") { value = 0.75f };
+
+            StyleField(capsuleHeightField);
+            StyleField(capsuleRadiusField);
+            StyleField(headDamageMultiplierField);
+            StyleField(bodyDamageMultiplierField);
+            StyleField(legsDamageMultiplierField);
+            panel.Add(capsuleHeightField);
+            panel.Add(capsuleRadiusField);
+            panel.Add(headDamageMultiplierField);
+            panel.Add(bodyDamageMultiplierField);
+            panel.Add(legsDamageMultiplierField);
+
+            Label hint = new Label("Multipliers scale incoming damage. You can edit the generated Hitbox_* objects later to create custom zones.");
+            hint.style.color = IrisTraceTheme.SecondaryText;
+            hint.style.fontSize = 10f;
+            hint.style.whiteSpace = WhiteSpace.Normal;
+            hint.style.marginTop = 5f;
+            panel.Add(hint);
             return panel;
         }
 
@@ -284,7 +320,12 @@ namespace IrisTrace.Editor.Windows
                 detectionRangeField.value,
                 attackRangeField.value,
                 attackDamageField.value,
-                attackCooldownField.value);
+                attackCooldownField.value,
+                capsuleHeightField.value,
+                capsuleRadiusField.value,
+                headDamageMultiplierField.value,
+                bodyDamageMultiplierField.value,
+                legsDamageMultiplierField.value);
 
             string configurationPath = AssetDatabase.GenerateUniqueAssetPath($"{configurationFolder}/{safeName}.asset");
             AssetDatabase.CreateAsset(definition, configurationPath);
@@ -322,6 +363,14 @@ namespace IrisTrace.Editor.Windows
             if (maxHealthField.value <= 0f)
             {
                 EditorUtility.DisplayDialog("Invalid Health", "Max Health must be greater than zero.", "OK");
+                return false;
+            }
+
+            if (capsuleHeightField.value < 0.8f || capsuleRadiusField.value < 0.05f ||
+                capsuleRadiusField.value > capsuleHeightField.value * 0.45f ||
+                headDamageMultiplierField.value < 0f || bodyDamageMultiplierField.value < 0f || legsDamageMultiplierField.value < 0f)
+            {
+                EditorUtility.DisplayDialog("Invalid Collision Settings", "Capsule height must be at least 0.8, radius must be positive and no more than 45% of the height, and hit-zone multipliers cannot be negative.", "OK");
                 return false;
             }
 

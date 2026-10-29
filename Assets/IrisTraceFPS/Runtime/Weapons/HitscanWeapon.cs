@@ -122,12 +122,15 @@ namespace IrisTrace.Runtime.Weapons
 
             // Ignore every collider belonging to the shooter and resolve the nearest external hit.
             // This keeps the weapon from damaging its own character while preserving wall occlusion.
+            // Generated hit zones are child colliders on moving CharacterController/AI roots.
+            // Synchronize transform changes before querying so shots use their current positions.
+            Physics.SyncTransforms();
             RaycastHit[] hits = Physics.RaycastAll(
                 origin,
                 direction,
                 definition.Range,
                 hitMask,
-                QueryTriggerInteraction.Ignore);
+                QueryTriggerInteraction.Collide);
 
             bool foundExternalHit = false;
             RaycastHit closestHit = default;
@@ -136,6 +139,20 @@ namespace IrisTrace.Runtime.Weapons
                 Collider candidate = hits[i].collider;
                 if (candidate == null || IsOwnerCollider(candidate))
                     continue;
+
+                HitZone candidateZone = FindHitZone(candidate);
+                // Trigger volumes are only considered when explicitly marked as hit zones.
+                if (candidate.isTrigger && candidateZone == null)
+                    continue;
+
+                // Ignore a target's broad physical collider once it has authored hit zones.
+                // Otherwise the CharacterController/body collider would intercept head shots.
+                if (candidateZone == null)
+                {
+                    IDamageable candidateDamageable = FindDamageable(candidate);
+                    if (candidateDamageable is Component candidateComponent && HasHitZones(candidateComponent))
+                        continue;
+                }
 
                 if (!foundExternalHit || hits[i].distance < closestHit.distance)
                 {
@@ -151,12 +168,16 @@ namespace IrisTrace.Runtime.Weapons
             if (damageable == null)
                 return;
 
-            damageable.TakeDamage(definition.Damage);
+            HitZone hitZone = FindHitZone(closestHit.collider);
+            float multiplier = hitZone != null ? hitZone.DamageMultiplier : 1f;
+            float appliedDamage = definition.Damage * multiplier;
+            damageable.TakeDamage(appliedDamage);
             HitConfirmed?.Invoke();
             string targetName = damageable is Component targetComponent
                 ? targetComponent.gameObject.name
                 : closestHit.collider.gameObject.name;
-            Debug.Log($"[{definition.DisplayName}] Hit {targetName} for {definition.Damage} damage.", closestHit.collider);
+            string zoneLabel = hitZone != null ? $" ({hitZone.DisplayName} x{multiplier:0.##})" : string.Empty;
+            Debug.Log($"[{definition.DisplayName}] Hit {targetName}{zoneLabel} for {appliedDamage:0.##} damage.", closestHit.collider);
         }
 
         private IEnumerator ReloadRoutine()
@@ -215,6 +236,20 @@ namespace IrisTrace.Runtime.Weapons
 
             Transform candidateTransform = candidate.transform;
             return candidateTransform == ownerRoot || candidateTransform.IsChildOf(ownerRoot);
+        }
+
+        private static HitZone FindHitZone(Collider hitCollider)
+        {
+            if (hitCollider == null)
+                return null;
+
+            HitZone directZone = hitCollider.GetComponent<HitZone>();
+            return directZone != null ? directZone : hitCollider.GetComponentInParent<HitZone>();
+        }
+
+        private static bool HasHitZones(Component target)
+        {
+            return target != null && target.GetComponentInChildren<HitZone>(true) != null;
         }
 
         private static IDamageable FindDamageable(Collider hitCollider)

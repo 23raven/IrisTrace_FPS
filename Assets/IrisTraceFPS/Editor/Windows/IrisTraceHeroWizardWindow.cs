@@ -19,6 +19,11 @@ namespace IrisTrace.Editor.Windows
 
         private TextField displayNameField;
         private FloatField maxHealthField;
+        private FloatField controllerHeightField;
+        private FloatField controllerRadiusField;
+        private FloatField headDamageMultiplierField;
+        private FloatField bodyDamageMultiplierField;
+        private FloatField legsDamageMultiplierField;
         private FloatField walkSpeedField;
         private FloatField sprintSpeedField;
         private FloatField jumpHeightField;
@@ -126,6 +131,8 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildHeader());
             content.Add(BuildSection("BASICS", "Name your character and set core stats."));
             content.Add(BuildBasicsPanel());
+            content.Add(BuildSection("COLLISION & HIT ZONES", "Set the player capsule size and damage multipliers for incoming hits."));
+            content.Add(BuildCollisionPanel());
             content.Add(BuildSection("MOVEMENT & CAMERA", "Configure movement speed, jump and optional crouching."));
             content.Add(BuildMovementPanel());
             content.Add(BuildSection("FIRST-PERSON VIEWMODEL", "Weapon visuals are generated automatically. Hands are hidden unless you assign your own arms prefab."));
@@ -213,6 +220,36 @@ namespace IrisTrace.Editor.Windows
             StyleField(maxHealthField);
             panel.Add(displayNameField);
             panel.Add(maxHealthField);
+            return panel;
+        }
+
+        private VisualElement BuildCollisionPanel()
+        {
+            VisualElement panel = BuildPanel();
+            controllerHeightField = new FloatField("Capsule Height") { value = 1.8f };
+            controllerRadiusField = new FloatField("Capsule Radius") { value = 0.32f };
+            headDamageMultiplierField = new FloatField("Head Damage Multiplier") { value = 2f };
+            bodyDamageMultiplierField = new FloatField("Body Damage Multiplier") { value = 1f };
+            legsDamageMultiplierField = new FloatField("Legs Damage Multiplier") { value = 0.75f };
+
+            StyleField(controllerHeightField);
+            StyleField(controllerRadiusField);
+            StyleField(headDamageMultiplierField);
+            StyleField(bodyDamageMultiplierField);
+            StyleField(legsDamageMultiplierField);
+
+            panel.Add(controllerHeightField);
+            panel.Add(controllerRadiusField);
+            panel.Add(headDamageMultiplierField);
+            panel.Add(bodyDamageMultiplierField);
+            panel.Add(legsDamageMultiplierField);
+
+            Label hint = new Label("Multipliers scale damage received by each zone. A value of 2 applies double damage.");
+            hint.style.color = IrisTraceTheme.SecondaryText;
+            hint.style.fontSize = 10f;
+            hint.style.whiteSpace = WhiteSpace.Normal;
+            hint.style.marginTop = 5f;
+            panel.Add(hint);
             return panel;
         }
 
@@ -638,6 +675,11 @@ namespace IrisTrace.Editor.Windows
             SetString(serialized, "id", Guid.NewGuid().ToString("N"));
             SetString(serialized, "displayName", displayNameField.value.Trim());
             SetFloat(serialized, "maxHealth", maxHealthField.value);
+            SetFloat(serialized, "controllerHeight", controllerHeightField.value);
+            SetFloat(serialized, "controllerRadius", controllerRadiusField.value);
+            SetFloat(serialized, "headDamageMultiplier", headDamageMultiplierField.value);
+            SetFloat(serialized, "bodyDamageMultiplier", bodyDamageMultiplierField.value);
+            SetFloat(serialized, "legsDamageMultiplier", legsDamageMultiplierField.value);
             SetFloat(serialized, "walkSpeed", walkSpeedField.value);
             SetFloat(serialized, "sprintSpeed", sprintSpeedField.value);
             SetFloat(serialized, "jumpHeight", jumpHeightField.value);
@@ -736,11 +778,14 @@ namespace IrisTrace.Editor.Windows
             }
 
             if (maxHealthField.value <= 0f || walkSpeedField.value <= 0f ||
+                controllerHeightField.value < 0.8f || controllerRadiusField.value < 0.05f ||
+                controllerRadiusField.value > controllerHeightField.value * 0.45f ||
+                headDamageMultiplierField.value < 0f || bodyDamageMultiplierField.value < 0f || legsDamageMultiplierField.value < 0f ||
                 jumpHeightField.value <= 0f || groundAccelerationField.value <= 0f ||
                 groundDecelerationField.value <= 0f || crouchTransitionDurationField.value < 0.05f ||
                 sensitivityField.value <= 0f)
             {
-                EditorUtility.DisplayDialog("Invalid Values", "Health, movement speed, jump height, acceleration, deceleration, crouch transition and sensitivity must be greater than zero.", "OK");
+                EditorUtility.DisplayDialog("Invalid Values", "Health, movement speed, jump height, acceleration, deceleration, crouch transition and sensitivity must be greater than zero. Capsule height must be at least 0.8, radius must be positive and no more than 45% of the height, and hit-zone multipliers cannot be negative.", "OK");
                 return false;
             }
 
@@ -768,10 +813,11 @@ namespace IrisTrace.Editor.Windows
             }
 
             if (crouchEnabledField.value && (crouchSpeedField.value <= 0f ||
-                crouchedHeightField.value <= 0.65f || crouchedHeightField.value >= 1.75f))
+                crouchedHeightField.value <= controllerRadiusField.value * 2f + 0.02f ||
+                crouchedHeightField.value >= controllerHeightField.value - 0.05f))
             {
                 EditorUtility.DisplayDialog("Invalid Crouch Settings",
-                    "Crouch Speed must be positive. Crouched Height must be greater than 0.65 and less than the 1.8 m standing height.", "OK");
+                    "Crouch Speed must be positive. Crouched Height must exceed the capsule diameter and remain at least 0.05 below the standing height.", "OK");
                 return false;
             }
 

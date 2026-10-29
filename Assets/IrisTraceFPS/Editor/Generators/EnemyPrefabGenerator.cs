@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using IrisTrace.Runtime.Core;
 using IrisTrace.Runtime.Enemies;
 
 namespace IrisTrace.Editor.Generators
@@ -24,6 +25,8 @@ namespace IrisTrace.Editor.Generators
             EnsureAssetFolder(enemyFolder);
             string prefabPath = AssetDatabase.GenerateUniqueAssetPath($"{enemyFolder}/{safeName}.prefab");
 
+            float enemyHeight = definition.CapsuleHeight;
+            float enemyRadius = definition.CapsuleRadius;
             GameObject buildRoot = new GameObject(safeName);
             GameObject prefabAsset;
             try
@@ -38,25 +41,29 @@ namespace IrisTrace.Editor.Generators
                     agent.speed = definition.MoveSpeed;
                     agent.angularSpeed = 540f;
                     agent.acceleration = 12f;
-                    agent.radius = 0.35f;
-                    agent.height = 2f;
+                    agent.radius = enemyRadius;
+                    agent.height = enemyHeight;
                     agent.stoppingDistance = Mathf.Max(0.2f, definition.AttackRange * 0.75f);
 
                     BasicEnemyAI brain = buildRoot.AddComponent<BasicEnemyAI>();
                     brain.Configure(definition, health, agent);
                 }
 
+                float bodyHeight = enemyHeight * 0.84f;
                 GameObject body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
                 body.name = "Body";
                 body.transform.SetParent(buildRoot.transform, false);
-                body.transform.localPosition = new Vector3(0f, 1f, 0f);
-                body.transform.localScale = new Vector3(0.9f, 1f, 0.9f);
+                body.transform.localPosition = new Vector3(0f, bodyHeight * 0.5f, 0f);
+                body.transform.localScale = new Vector3(enemyRadius * 2f, bodyHeight * 0.5f, enemyRadius * 2f);
 
+                float headDiameter = Mathf.Min(enemyRadius * 1.38f, enemyHeight * 0.26f);
                 GameObject head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 head.name = "Head";
                 head.transform.SetParent(buildRoot.transform, false);
-                head.transform.localPosition = new Vector3(0f, 2.08f, 0f);
-                head.transform.localScale = Vector3.one * 0.62f;
+                head.transform.localPosition = new Vector3(0f, enemyHeight * 0.87f, 0f);
+                head.transform.localScale = Vector3.one * headDiameter;
+
+                AddEnemyHitZones(buildRoot.transform, definition, enemyHeight, enemyRadius);
 
                 prefabAsset = PrefabUtility.SaveAsPrefabAsset(buildRoot, prefabPath, out bool success);
                 if (!success || prefabAsset == null)
@@ -83,6 +90,33 @@ namespace IrisTrace.Editor.Generators
             EditorGUIUtility.PingObject(instance);
             EditorSceneManager.MarkSceneDirty(scene);
             return instance;
+        }
+
+        private static void AddEnemyHitZones(Transform root, EnemyDefinition definition, float height, float radius)
+        {
+            GameObject headObject = new GameObject("Hitbox_Head");
+            headObject.transform.SetParent(root, false);
+            headObject.transform.localPosition = new Vector3(0f, height * 0.88f, 0f);
+            SphereCollider headCollider = headObject.AddComponent<SphereCollider>();
+            headCollider.isTrigger = true;
+            headCollider.radius = Mathf.Min(radius * 0.65f, height * 0.12f);
+            headObject.AddComponent<HitZone>().Configure(HitZoneType.Head, definition.HeadDamageMultiplier);
+
+            GameObject bodyObject = new GameObject("Hitbox_Body");
+            bodyObject.transform.SetParent(root, false);
+            bodyObject.transform.localPosition = new Vector3(0f, height * 0.54f, 0f);
+            BoxCollider bodyCollider = bodyObject.AddComponent<BoxCollider>();
+            bodyCollider.isTrigger = true;
+            bodyCollider.size = new Vector3(radius * 2f, height * 0.47f, radius * 2f);
+            bodyObject.AddComponent<HitZone>().Configure(HitZoneType.Body, definition.BodyDamageMultiplier);
+
+            GameObject legsObject = new GameObject("Hitbox_Legs");
+            legsObject.transform.SetParent(root, false);
+            legsObject.transform.localPosition = new Vector3(0f, height * 0.18f, 0f);
+            BoxCollider legsCollider = legsObject.AddComponent<BoxCollider>();
+            legsCollider.isTrigger = true;
+            legsCollider.size = new Vector3(radius * 2f, height * 0.35f, radius * 2f);
+            legsObject.AddComponent<HitZone>().Configure(HitZoneType.Legs, definition.LegsDamageMultiplier);
         }
 
         private static int CountExistingEnemies(Scene scene)

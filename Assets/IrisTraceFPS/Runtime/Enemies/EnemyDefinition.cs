@@ -22,6 +22,13 @@ namespace IrisTrace.Runtime.Enemies
         [SerializeField, Min(0f)] private float attackDamage = 10f;
         [SerializeField, Min(0.1f)] private float attackCooldown = 1.25f;
 
+        [Header("Collision & Hit Zones")]
+        [SerializeField, Min(0.8f)] private float capsuleHeight = 2.4f;
+        [SerializeField, Min(0.05f)] private float capsuleRadius = 0.45f;
+        [SerializeField, Min(0f)] private float headDamageMultiplier = 2f;
+        [SerializeField, Min(0f)] private float bodyDamageMultiplier = 1f;
+        [SerializeField, Min(0f)] private float legsDamageMultiplier = 0.75f;
+
         public string Id => id;
         public string DisplayName => displayName;
         public EnemyBehaviorMode Behavior => behavior;
@@ -31,6 +38,11 @@ namespace IrisTrace.Runtime.Enemies
         public float AttackRange => attackRange;
         public float AttackDamage => attackDamage;
         public float AttackCooldown => attackCooldown;
+        public float CapsuleHeight => Mathf.Max(0.8f, capsuleHeight);
+        public float CapsuleRadius => Mathf.Clamp(capsuleRadius, 0.05f, CapsuleHeight * 0.45f);
+        public float HeadDamageMultiplier => Mathf.Max(0f, headDamageMultiplier);
+        public float BodyDamageMultiplier => Mathf.Max(0f, bodyDamageMultiplier);
+        public float LegsDamageMultiplier => Mathf.Max(0f, legsDamageMultiplier);
 
         public void Configure(
             string uniqueId,
@@ -41,7 +53,12 @@ namespace IrisTrace.Runtime.Enemies
             float detectRange,
             float attackDistance,
             float damage,
-            float cooldown)
+            float cooldown,
+            float height = 2.4f,
+            float radius = 0.45f,
+            float headMultiplier = 2f,
+            float bodyMultiplier = 1f,
+            float legsMultiplier = 0.75f)
         {
             id = uniqueId;
             displayName = string.IsNullOrWhiteSpace(name) ? "New Enemy" : name.Trim();
@@ -52,6 +69,11 @@ namespace IrisTrace.Runtime.Enemies
             attackRange = Mathf.Max(0.5f, attackDistance);
             attackDamage = Mathf.Max(0f, damage);
             attackCooldown = Mathf.Max(0.1f, cooldown);
+            capsuleHeight = Mathf.Max(0.8f, height);
+            capsuleRadius = Mathf.Clamp(radius, 0.05f, capsuleHeight * 0.45f);
+            headDamageMultiplier = Mathf.Max(0f, headMultiplier);
+            bodyDamageMultiplier = Mathf.Max(0f, bodyMultiplier);
+            legsDamageMultiplier = Mathf.Max(0f, legsMultiplier);
         }
 
         private void OnValidate()
@@ -62,6 +84,11 @@ namespace IrisTrace.Runtime.Enemies
             attackRange = Mathf.Max(0.5f, attackRange);
             attackDamage = Mathf.Max(0f, attackDamage);
             attackCooldown = Mathf.Max(0.1f, attackCooldown);
+            capsuleHeight = Mathf.Max(0.8f, capsuleHeight);
+            capsuleRadius = Mathf.Clamp(capsuleRadius, 0.05f, capsuleHeight * 0.45f);
+            headDamageMultiplier = Mathf.Max(0f, headDamageMultiplier);
+            bodyDamageMultiplier = Mathf.Max(0f, bodyDamageMultiplier);
+            legsDamageMultiplier = Mathf.Max(0f, legsDamageMultiplier);
         }
     }
 }

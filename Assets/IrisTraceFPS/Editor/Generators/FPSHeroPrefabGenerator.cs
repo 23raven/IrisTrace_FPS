@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using IrisTrace.Runtime.Characters;
+using IrisTrace.Runtime.Core;
 using IrisTrace.Runtime.Weapons;
 using IrisTrace.Runtime.Input;
 using IrisTrace.Runtime.Abilities;
@@ -35,20 +36,21 @@ namespace IrisTrace.Editor.Generators
             try
             {
                 CharacterController characterController = buildRoot.AddComponent<CharacterController>();
-                characterController.height = 1.8f;
-                characterController.radius = 0.32f;
-                characterController.center = new Vector3(0f, 0.9f, 0f);
+                characterController.height = definition.ControllerHeight;
+                characterController.radius = definition.ControllerRadius;
+                characterController.center = new Vector3(0f, definition.ControllerHeight * 0.5f, 0f);
                 characterController.slopeLimit = 45f;
-                characterController.stepOffset = 0.3f;
-                characterController.skinWidth = 0.08f;
+                characterController.stepOffset = Mathf.Min(0.3f, definition.ControllerHeight * 0.2f);
+                characterController.skinWidth = Mathf.Min(0.08f, definition.ControllerRadius * 0.25f);
                 characterController.minMoveDistance = 0f;
 
                 CharacterHealth health = buildRoot.AddComponent<CharacterHealth>();
+                AddCharacterHitZones(buildRoot.transform, characterController, definition);
                 health.Initialize(definition.MaxHealth);
 
                 GameObject cameraObject = new GameObject("PlayerCamera");
                 cameraObject.transform.SetParent(buildRoot.transform, false);
-                cameraObject.transform.localPosition = new Vector3(0f, 1.62f, 0f);
+                cameraObject.transform.localPosition = new Vector3(0f, definition.ControllerHeight * 0.9f, 0f);
                 cameraObject.tag = "MainCamera";
 
                 Camera playerCamera = cameraObject.AddComponent<Camera>();
@@ -301,6 +303,30 @@ namespace IrisTrace.Editor.Generators
             Renderer renderer = visual.GetComponent<Renderer>();
             if (renderer != null && material != null)
                 renderer.sharedMaterial = material;
+        }
+
+        private static void AddCharacterHitZones(Transform root, CharacterController controller, CharacterDefinition definition)
+        {
+            GameObject headObject = new GameObject("Hitbox_Head");
+            headObject.transform.SetParent(root, false);
+            SphereCollider headCollider = headObject.AddComponent<SphereCollider>();
+            headCollider.isTrigger = true;
+            headObject.AddComponent<HitZone>().Configure(HitZoneType.Head, definition.HeadDamageMultiplier);
+
+            GameObject bodyObject = new GameObject("Hitbox_Body");
+            bodyObject.transform.SetParent(root, false);
+            BoxCollider bodyCollider = bodyObject.AddComponent<BoxCollider>();
+            bodyCollider.isTrigger = true;
+            bodyObject.AddComponent<HitZone>().Configure(HitZoneType.Body, definition.BodyDamageMultiplier);
+
+            GameObject legsObject = new GameObject("Hitbox_Legs");
+            legsObject.transform.SetParent(root, false);
+            BoxCollider legsCollider = legsObject.AddComponent<BoxCollider>();
+            legsCollider.isTrigger = true;
+            legsObject.AddComponent<HitZone>().Configure(HitZoneType.Legs, definition.LegsDamageMultiplier);
+
+            CharacterHitZoneRig rig = root.gameObject.AddComponent<CharacterHitZoneRig>();
+            rig.Configure(controller, headCollider, bodyCollider, legsCollider);
         }
 
         private static void DisableOtherMainCameras(Scene scene, Camera generatedCamera)
