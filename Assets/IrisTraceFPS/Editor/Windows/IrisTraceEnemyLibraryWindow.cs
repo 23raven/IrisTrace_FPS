@@ -30,6 +30,8 @@ namespace IrisTrace.Editor.Windows
         private FloatField attackRangeField;
         private FloatField attackDamageField;
         private FloatField attackCooldownField;
+        private EnumField attackModeField;
+        private FloatField accuracyField;
         private FloatField capsuleHeightField;
         private FloatField capsuleRadiusField;
         private FloatField headDamageMultiplierField;
@@ -150,7 +152,10 @@ namespace IrisTrace.Editor.Windows
 
                 EnemyDefinition captured = definition;
                 Button row = new Button(() => SelectEnemy(captured));
-                row.text = $"{displayName}\n{ShortId(id)}  •  {definition.Behavior}  /  {definition.MaxHealth:0} HP";
+                string attackLabel = definition.Behavior == EnemyBehaviorMode.BasicAI
+                    ? $"  •  {definition.AttackMode}"
+                    : string.Empty;
+                row.text = $"{displayName}\n{ShortId(id)}  •  {definition.Behavior}{attackLabel}  /  {definition.MaxHealth:0} HP";
                 row.style.height = 48f;
                 row.style.marginBottom = 5f;
                 row.style.unityTextAlign = TextAnchor.MiddleLeft;
@@ -223,6 +228,8 @@ namespace IrisTrace.Editor.Windows
             attackRangeField = new FloatField("Attack Range") { value = selected.AttackRange };
             attackDamageField = new FloatField("Attack Damage") { value = selected.AttackDamage };
             attackCooldownField = new FloatField("Attack Cooldown (s)") { value = selected.AttackCooldown };
+            attackModeField = new EnumField("Attack Type", selected.AttackMode);
+            accuracyField = new FloatField("Accuracy (%)") { value = selected.Accuracy };
             capsuleHeightField = new FloatField("Capsule Height") { value = selected.CapsuleHeight };
             capsuleRadiusField = new FloatField("Capsule Radius") { value = selected.CapsuleRadius };
             headDamageMultiplierField = new FloatField("Head Damage Multiplier") { value = selected.HeadDamageMultiplier };
@@ -237,6 +244,8 @@ namespace IrisTrace.Editor.Windows
             AddField(panel, attackRangeField);
             AddField(panel, attackDamageField);
             AddField(panel, attackCooldownField);
+            AddField(panel, attackModeField);
+            AddField(panel, accuracyField);
 
             Label collisionHeading = new Label("Collision & Hit Zones");
             collisionHeading.style.color = IrisTraceTheme.Accent;
@@ -251,7 +260,7 @@ namespace IrisTrace.Editor.Windows
             AddField(panel, bodyDamageMultiplierField);
             AddField(panel, legsDamageMultiplierField);
 
-            Label hint = new Label("AI values are used when Behavior is set to BasicAI. Hit-zone multipliers scale incoming weapon damage.");
+            Label hint = new Label("Bot settings are used when Behavior is set to BasicAI. Ranged bots fire hitscan shots; accuracy controls shot spread. Hit-zone multipliers scale incoming weapon damage.");
             hint.style.color = IrisTraceTheme.SecondaryText;
             hint.style.fontSize = 10f;
             hint.style.whiteSpace = WhiteSpace.Normal;
@@ -317,6 +326,8 @@ namespace IrisTrace.Editor.Windows
             SetFloat(serialized, "attackRange", Mathf.Max(0.5f, attackRangeField.value));
             SetFloat(serialized, "attackDamage", Mathf.Max(0f, attackDamageField.value));
             SetFloat(serialized, "attackCooldown", Mathf.Max(0.1f, attackCooldownField.value));
+            SetEnum(serialized, "attackMode", (EnemyAttackMode)attackModeField.value);
+            SetFloat(serialized, "accuracy", Mathf.Clamp(accuracyField.value, 0f, 100f));
             float safeHeight = Mathf.Max(0.8f, capsuleHeightField.value);
             SetFloat(serialized, "capsuleHeight", safeHeight);
             SetFloat(serialized, "capsuleRadius", Mathf.Clamp(capsuleRadiusField.value, 0.05f, safeHeight * 0.45f));
@@ -363,7 +374,9 @@ namespace IrisTrace.Editor.Windows
                 selected.CapsuleRadius,
                 selected.HeadDamageMultiplier,
                 selected.BodyDamageMultiplier,
-                selected.LegsDamageMultiplier);
+                selected.LegsDamageMultiplier,
+                selected.AttackMode,
+                selected.Accuracy);
             duplicate.name = SanitizeFileName(newName);
 
             string newPath = AssetDatabase.GenerateUniqueAssetPath($"{EnemyConfigRoot}/{SanitizeFileName(newName)}.asset");
@@ -483,6 +496,13 @@ namespace IrisTrace.Editor.Windows
         }
 
         private static void SetEnum(SerializedObject serialized, string propertyName, EnemyBehaviorMode value)
+        {
+            SerializedProperty property = serialized.FindProperty(propertyName);
+            if (property != null)
+                property.enumValueIndex = (int)value;
+        }
+
+        private static void SetEnum(SerializedObject serialized, string propertyName, EnemyAttackMode value)
         {
             SerializedProperty property = serialized.FindProperty(propertyName);
             if (property != null)

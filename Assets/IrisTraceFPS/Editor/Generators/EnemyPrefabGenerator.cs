@@ -45,6 +45,10 @@ namespace IrisTrace.Editor.Generators
                     agent.height = enemyHeight;
                     agent.stoppingDistance = Mathf.Max(0.2f, definition.AttackRange * 0.75f);
 
+                    GameObject muzzle = new GameObject("Muzzle");
+                    muzzle.transform.SetParent(buildRoot.transform, false);
+                    muzzle.transform.localPosition = new Vector3(0f, enemyHeight * 0.72f, enemyRadius * 0.72f);
+
                     BasicEnemyAI brain = buildRoot.AddComponent<BasicEnemyAI>();
                     brain.Configure(definition, health, agent);
                 }

@@ -8,6 +8,12 @@ namespace IrisTrace.Runtime.Enemies
         BasicAI
     }
 
+    public enum EnemyAttackMode
+    {
+        Melee,
+        Ranged
+    }
+
     /// <summary>Reusable configuration used to generate an IrisTrace enemy prefab.</summary>
     [CreateAssetMenu(menuName = "IrisTrace FPS/Enemy Definition", fileName = "NewEnemy")]
     public sealed class EnemyDefinition : ScriptableObject
@@ -21,6 +27,8 @@ namespace IrisTrace.Runtime.Enemies
         [SerializeField, Min(0.5f)] private float attackRange = 2.2f;
         [SerializeField, Min(0f)] private float attackDamage = 10f;
         [SerializeField, Min(0.1f)] private float attackCooldown = 1.25f;
+        [SerializeField] private EnemyAttackMode attackMode = EnemyAttackMode.Melee;
+        [SerializeField, Range(0f, 100f)] private float accuracy = 75f;
 
         [Header("Collision & Hit Zones")]
         [SerializeField, Min(0.8f)] private float capsuleHeight = 2.4f;
@@ -38,6 +46,8 @@ namespace IrisTrace.Runtime.Enemies
         public float AttackRange => attackRange;
         public float AttackDamage => attackDamage;
         public float AttackCooldown => attackCooldown;
+        public EnemyAttackMode AttackMode => attackMode;
+        public float Accuracy => Mathf.Clamp(accuracy, 0f, 100f);
         public float CapsuleHeight => Mathf.Max(0.8f, capsuleHeight);
         public float CapsuleRadius => Mathf.Clamp(capsuleRadius, 0.05f, CapsuleHeight * 0.45f);
         public float HeadDamageMultiplier => Mathf.Max(0f, headDamageMultiplier);
@@ -58,7 +68,9 @@ namespace IrisTrace.Runtime.Enemies
             float radius = 0.45f,
             float headMultiplier = 2f,
             float bodyMultiplier = 1f,
-            float legsMultiplier = 0.75f)
+            float legsMultiplier = 0.75f,
+            EnemyAttackMode attackMode = EnemyAttackMode.Melee,
+            float accuracy = 75f)
         {
             id = uniqueId;
             displayName = string.IsNullOrWhiteSpace(name) ? "New Enemy" : name.Trim();
@@ -69,6 +81,8 @@ namespace IrisTrace.Runtime.Enemies
             attackRange = Mathf.Max(0.5f, attackDistance);
             attackDamage = Mathf.Max(0f, damage);
             attackCooldown = Mathf.Max(0.1f, cooldown);
+            this.attackMode = attackMode;
+            this.accuracy = Mathf.Clamp(accuracy, 0f, 100f);
             capsuleHeight = Mathf.Max(0.8f, height);
             capsuleRadius = Mathf.Clamp(radius, 0.05f, capsuleHeight * 0.45f);
             headDamageMultiplier = Mathf.Max(0f, headMultiplier);
@@ -84,6 +98,7 @@ namespace IrisTrace.Runtime.Enemies
             attackRange = Mathf.Max(0.5f, attackRange);
             attackDamage = Mathf.Max(0f, attackDamage);
             attackCooldown = Mathf.Max(0.1f, attackCooldown);
+            accuracy = Mathf.Clamp(accuracy, 0f, 100f);
             capsuleHeight = Mathf.Max(0.8f, capsuleHeight);
             capsuleRadius = Mathf.Clamp(capsuleRadius, 0.05f, capsuleHeight * 0.45f);
             headDamageMultiplier = Mathf.Max(0f, headDamageMultiplier);

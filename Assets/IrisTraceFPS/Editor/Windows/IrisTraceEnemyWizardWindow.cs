@@ -21,6 +21,8 @@ namespace IrisTrace.Editor.Windows
         private FloatField attackRangeField;
         private FloatField attackDamageField;
         private FloatField attackCooldownField;
+        private EnumField attackModeField;
+        private FloatField accuracyField;
         private FloatField capsuleHeightField;
         private FloatField capsuleRadiusField;
         private FloatField headDamageMultiplierField;
@@ -71,7 +73,7 @@ namespace IrisTrace.Editor.Windows
             content.Add(BuildSettingsPanel());
             content.Add(BuildSection("COLLISION & HIT ZONES", "Set enemy dimensions and the damage multipliers for each hit zone."));
             content.Add(BuildHitZonesPanel());
-            content.Add(BuildSection("BASIC AI", "The bot detects the generated hero, follows and attacks within range."));
+            content.Add(BuildSection("BOT AI", "The bot detects the hero, follows the target and uses a melee or ranged attack."));
             content.Add(BuildAISettingsPanel());
             content.Add(BuildFooterActions());
 
@@ -193,21 +195,29 @@ namespace IrisTrace.Editor.Windows
             aiFields = BuildPanel();
             moveSpeedField = new FloatField("Move Speed") { value = 3.5f };
             detectionRangeField = new FloatField("Detection Range") { value = 14f };
-            attackRangeField = new FloatField("Attack Range") { value = 2.2f };
-            attackDamageField = new FloatField("Damage Per Attack") { value = 10f };
+            attackRangeField = new FloatField("Attack Range") { value = 12f };
+            attackDamageField = new FloatField("Damage Per Hit") { value = 10f };
             attackCooldownField = new FloatField("Attack Cooldown (s)") { value = 1.25f };
+            attackModeField = new EnumField("Attack Type", EnemyAttackMode.Ranged);
+            accuracyField = new FloatField("Accuracy (%)") { value = 75f };
 
             StyleField(moveSpeedField);
             StyleField(detectionRangeField);
             StyleField(attackRangeField);
             StyleField(attackDamageField);
             StyleField(attackCooldownField);
+            StyleField(attackModeField);
+            StyleField(accuracyField);
+            attackModeField.RegisterValueChangedCallback(_ => UpdateAccuracyVisibility());
 
             aiFields.Add(moveSpeedField);
             aiFields.Add(detectionRangeField);
             aiFields.Add(attackRangeField);
             aiFields.Add(attackDamageField);
             aiFields.Add(attackCooldownField);
+            aiFields.Add(attackModeField);
+            aiFields.Add(accuracyField);
+            UpdateAccuracyVisibility();
             return aiFields;
         }
 
@@ -245,6 +255,17 @@ namespace IrisTrace.Editor.Windows
 
             bool showAI = (EnemyBehaviorMode)behaviorField.value == EnemyBehaviorMode.BasicAI;
             aiFields.style.display = showAI ? DisplayStyle.Flex : DisplayStyle.None;
+            UpdateAccuracyVisibility();
+        }
+
+        private void UpdateAccuracyVisibility()
+        {
+            if (accuracyField == null || attackModeField == null)
+                return;
+
+            accuracyField.style.display = (EnemyAttackMode)attackModeField.value == EnemyAttackMode.Ranged
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
         }
 
         private static VisualElement BuildPanel()
@@ -325,7 +346,9 @@ namespace IrisTrace.Editor.Windows
                 capsuleRadiusField.value,
                 headDamageMultiplierField.value,
                 bodyDamageMultiplierField.value,
-                legsDamageMultiplierField.value);
+                legsDamageMultiplierField.value,
+                (EnemyAttackMode)attackModeField.value,
+                accuracyField.value);
 
             string configurationPath = AssetDatabase.GenerateUniqueAssetPath($"{configurationFolder}/{safeName}.asset");
             AssetDatabase.CreateAsset(definition, configurationPath);
@@ -345,7 +368,7 @@ namespace IrisTrace.Editor.Windows
             }
 
             string behaviorDescription = definition.Behavior == EnemyBehaviorMode.BasicAI
-                ? "Basic AI is enabled. It uses NavMesh when available and falls back to direct pursuit in unbaked test scenes."
+                ? $"Bot AI is enabled ({definition.AttackMode}). It uses NavMesh when available and falls back to direct pursuit in unbaked test scenes."
                 : "Stationary target is ready for weapon testing.";
             EditorUtility.DisplayDialog("Enemy Generated",
                 $"'{definition.DisplayName}' was saved as a prefab and placed in the active scene.\n\n{behaviorDescription}", "OK");
@@ -379,6 +402,12 @@ namespace IrisTrace.Editor.Windows
                 if (moveSpeedField.value <= 0f || detectionRangeField.value <= 0f || attackRangeField.value <= 0f || attackCooldownField.value <= 0f || attackDamageField.value < 0f)
                 {
                     EditorUtility.DisplayDialog("Invalid AI Settings", "Move speed, detection range, attack range and cooldown must be positive. Damage cannot be negative.", "OK");
+                    return false;
+                }
+                if ((EnemyAttackMode)attackModeField.value == EnemyAttackMode.Ranged &&
+                    (accuracyField.value < 0f || accuracyField.value > 100f))
+                {
+                    EditorUtility.DisplayDialog("Invalid Accuracy", "Accuracy must be between 0 and 100.", "OK");
                     return false;
                 }
             }

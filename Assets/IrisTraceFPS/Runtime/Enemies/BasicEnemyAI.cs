@@ -14,6 +14,7 @@ namespace IrisTrace.Runtime.Enemies
         [SerializeField] private EnemyDefinition definition;
         [SerializeField] private EnemyHealth health;
         [SerializeField] private NavMeshAgent agent;
+        [SerializeField] private Transform muzzlePoint;
         [SerializeField, Min(0.1f)] private float targetSearchInterval = 0.65f;
         [SerializeField, Min(0.05f)] private float destinationRefreshInterval = 0.25f;
         [SerializeField, Min(0.1f)] private float fallbackObstacleProbeDistance = 0.25f;
@@ -29,6 +30,9 @@ namespace IrisTrace.Runtime.Enemies
         private float nextNavMeshCheckTime;
         private float nextDestinationRefreshTime;
         private Vector3 lastDestination;
+        private LineRenderer shotTracer;
+        private Material shotTracerMaterial;
+        private float tracerDisableTime;
         private readonly RaycastHit[] attackHits = new RaycastHit[32];
 
         public void Configure(EnemyDefinition enemyDefinition, EnemyHealth enemyHealth, NavMeshAgent navMeshAgent)
@@ -36,6 +40,8 @@ namespace IrisTrace.Runtime.Enemies
             definition = enemyDefinition;
             health = enemyHealth;
             agent = navMeshAgent;
+            if (muzzlePoint == null)
+                muzzlePoint = transform.Find("Muzzle");
         }
 
         private void Awake()
@@ -44,6 +50,8 @@ namespace IrisTrace.Runtime.Enemies
                 health = GetComponent<EnemyHealth>();
             if (agent == null)
                 agent = GetComponent<NavMeshAgent>();
+            if (muzzlePoint == null)
+                muzzlePoint = transform.Find("Muzzle");
 
             // Generated NavMeshAgents start disabled so prefabs can be used in scenes without a NavMesh.
             if (agent != null && agent.enabled && !agent.isOnNavMesh)
@@ -52,6 +60,9 @@ namespace IrisTrace.Runtime.Enemies
 
         private void Update()
         {
+            if (shotTracer != null && shotTracer.enabled && Time.time >= tracerDisableTime)
+                shotTracer.enabled = false;
+
             if (definition == null || health == null || health.IsDead || definition.Behavior != EnemyBehaviorMode.BasicAI)
             {
                 StopMovement();
@@ -275,10 +286,18 @@ namespace IrisTrace.Runtime.Enemies
 
         private void TryAttack()
         {
+            if (definition.AttackMode == EnemyAttackMode.Ranged)
+                TryRangedAttack();
+            else
+                TryMeleeAttack();
+        }
+
+        private void TryMeleeAttack()
+        {
             if (definition.AttackDamage <= 0f || Time.time < nextAttackTime || Time.time < nextAttackCheckTime)
                 return;
 
-            Vector3 origin = transform.position + Vector3.up * 1.25f;
+            Vector3 origin = transform.position + Vector3.up * Mathf.Min(definition.CapsuleHeight * 0.65f, 1.25f);
             Vector3 destination = combatTarget.AimPoint != null
                 ? combatTarget.AimPoint.position
                 : targetRoot.position + Vector3.up;
@@ -297,6 +316,114 @@ namespace IrisTrace.Runtime.Enemies
             nextAttackTime = Time.time + definition.AttackCooldown;
             targetDamageable.TakeDamage(definition.AttackDamage);
             Debug.Log($"[{definition.DisplayName}] Hit {targetRoot.name} for {definition.AttackDamage} damage.", targetRoot);
+        }
+
+        private void TryRangedAttack()
+        {
+            if (definition.AttackDamage <= 0f || Time.time < nextAttackTime || Time.time < nextAttackCheckTime)
+                return;
+
+            Vector3 origin = muzzlePoint != null
+                ? muzzlePoint.position
+                : transform.position + Vector3.up * Mathf.Min(definition.CapsuleHeight * 0.72f, 1.6f);
+            Vector3 destination = combatTarget != null && combatTarget.AimPoint != null
+                ? combatTarget.AimPoint.position
+                : targetRoot.position + Vector3.up;
+            Vector3 toTarget = destination - origin;
+            if (toTarget.sqrMagnitude <= 0.0001f)
+                return;
+
+            float maxDistance = Mathf.Max(definition.AttackRange + 1f, toTarget.magnitude + 1f);
+            float spreadAngle = Mathf.Lerp(12f, 0.15f, definition.Accuracy / 100f);
+            Vector2 spread = Random.insideUnitCircle * spreadAngle;
+            Vector3 direction = Quaternion.LookRotation(toTarget.normalized) *
+                                Quaternion.Euler(spread.y, spread.x, 0f) * Vector3.forward;
+
+            Physics.SyncTransforms();
+            int hitCount = Physics.RaycastNonAlloc(origin, direction, attackHits, maxDistance, ~0,
+                QueryTriggerInteraction.Ignore);
+
+            bool hasExternalHit = false;
+            RaycastHit closestHit = default;
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider candidate = attackHits[i].collider;
+                if (candidate == null || IsOwnCollider(candidate))
+                    continue;
+
+                if (!hasExternalHit || attackHits[i].distance < closestHit.distance)
+                {
+                    closestHit = attackHits[i];
+                    hasExternalHit = true;
+                }
+            }
+
+            bool hitTarget = !hasExternalHit;
+            Vector3 tracerEnd = origin + direction * maxDistance;
+            if (hasExternalHit)
+            {
+                tracerEnd = closestHit.point;
+                Transform hitTransform = closestHit.collider.transform;
+                hitTarget = targetRoot != null &&
+                            (hitTransform == targetRoot || hitTransform.IsChildOf(targetRoot));
+            }
+
+            nextAttackTime = Time.time + definition.AttackCooldown;
+            ShowShotTracer(origin, tracerEnd);
+
+            if (!hitTarget)
+            {
+                nextAttackCheckTime = Time.time + 0.05f;
+                return;
+            }
+
+            targetDamageable.TakeDamage(definition.AttackDamage);
+            Debug.Log($"[{definition.DisplayName}] Shot {targetRoot.name} for {definition.AttackDamage} damage.", targetRoot);
+        }
+
+        private bool IsOwnCollider(Collider candidate)
+        {
+            Transform candidateTransform = candidate.transform;
+            return candidateTransform == transform || candidateTransform.IsChildOf(transform);
+        }
+
+        private void ShowShotTracer(Vector3 start, Vector3 end)
+        {
+            EnsureShotTracer();
+            if (shotTracer == null)
+                return;
+
+            shotTracer.SetPosition(0, start);
+            shotTracer.SetPosition(1, end);
+            shotTracer.enabled = true;
+            tracerDisableTime = Time.time + 0.075f;
+        }
+
+        private void EnsureShotTracer()
+        {
+            if (shotTracer != null)
+                return;
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit") ??
+                            Shader.Find("Sprites/Default") ??
+                            Shader.Find("Unlit/Color");
+            if (shader == null)
+                return;
+
+            GameObject tracerObject = new GameObject("RuntimeShotTracer");
+            tracerObject.transform.SetParent(transform, false);
+            shotTracer = tracerObject.AddComponent<LineRenderer>();
+            shotTracerMaterial = new Material(shader);
+            shotTracer.material = shotTracerMaterial;
+            shotTracer.useWorldSpace = true;
+            shotTracer.alignment = LineAlignment.View;
+            shotTracer.positionCount = 2;
+            shotTracer.startWidth = 0.025f;
+            shotTracer.endWidth = 0.006f;
+            shotTracer.startColor = new Color(1f, 0.18f, 0.08f, 0.95f);
+            shotTracer.endColor = new Color(1f, 0.52f, 0.12f, 0.35f);
+            shotTracer.numCapVertices = 2;
+            shotTracer.enabled = false;
         }
 
         private bool HasLineOfSight(Vector3 origin, Vector3 direction, float distance)
@@ -364,6 +491,19 @@ namespace IrisTrace.Runtime.Enemies
         private void OnDisable()
         {
             StopMovement();
+            if (shotTracer != null)
+                shotTracer.enabled = false;
+        }
+
+        private void OnDestroy()
+        {
+            if (shotTracerMaterial != null)
+            {
+                if (Application.isPlaying)
+                    Destroy(shotTracerMaterial);
+                else
+                    DestroyImmediate(shotTracerMaterial);
+            }
         }
 
         private void OnDrawGizmosSelected()
