@@ -1,0 +1,16 @@
+{
+  "name": "IrisTrace.Runtime.Interactions",
+  "rootNamespace": "IrisTrace.Runtime.Interactions",
+  "references": [
+    "IrisTrace.Runtime.Core"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

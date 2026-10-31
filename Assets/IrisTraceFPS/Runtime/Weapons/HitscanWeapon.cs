@@ -7,7 +7,7 @@ namespace IrisTrace.Runtime.Weapons
 {
     /// <summary>Minimal configurable raycast weapon with a magazine and timed reload.</summary>
     [DisallowMultipleComponent]
-    public sealed class HitscanWeapon : MonoBehaviour, IWeapon, IWeaponTelemetry, IHitFeedbackSource
+    public sealed class HitscanWeapon : MonoBehaviour, IWeapon, IWeaponTelemetry, IHitFeedbackSource, IAmmoReceiver
     {
         [SerializeField] private WeaponDefinition definition;
         [SerializeField] private Camera viewCamera;
@@ -69,6 +69,17 @@ namespace IrisTrace.Runtime.Weapons
         public void EndFire()
         {
             isFiring = false;
+        }
+
+        public int AddReserveAmmo(int amount)
+        {
+            if (definition == null || amount <= 0)
+                return 0;
+
+            int previousAmmo = reserveAmmo;
+            long requestedAmmo = (long)reserveAmmo + amount;
+            reserveAmmo = (int)Math.Min(int.MaxValue, requestedAmmo);
+            return reserveAmmo - previousAmmo;
         }
 
         public void Reload()
